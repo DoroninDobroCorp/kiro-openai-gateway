@@ -298,34 +298,18 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
                     logger.info("Retry successful after credentials reload")
                     response = retry_response
                 else:
-                    # Still failing, return original error
-                    try:
-                        retry_error = await retry_response.aread()
-                        error_text = retry_error.decode('utf-8', errors='replace')
-                        try:
-                            error_json = json.loads(error_text)
-                            if "message" in error_json:
-                                error_message = error_json["message"]
-                                if "reason" in error_json:
-                                    error_message = f"{error_message} (reason: {error_json['reason']})"
-                        except (json.JSONDecodeError, KeyError):
-                            pass
-                    except Exception:
-                        pass
+                    # Still 402 - need account rotation
                     await http_client.close()
+                    logger.warning("Still 402 after reload - account limit reached, rotation needed")
                     
-                    logger.warning(
-                        f"HTTP {retry_response.status_code} - POST /v1/chat/completions - {error_message[:100]}"
-                    )
-                    if debug_logger:
-                        debug_logger.flush_on_error(retry_response.status_code, error_message)
+                    # Return 402 with hint about rotation
                     return JSONResponse(
-                        status_code=retry_response.status_code,
+                        status_code=402,
                         content={
                             "error": {
-                                "message": error_message,
-                                "type": "kiro_api_error",
-                                "code": retry_response.status_code
+                                "message": "Account limit reached. Run: python rotation/rotation_manager.py 402",
+                                "type": "account_limit_reached",
+                                "code": 402
                             }
                         }
                     )

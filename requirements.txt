@@ -7,6 +7,12 @@ requests
 python-dotenv
 tiktoken
 
+# Rotation dependencies
+selenium
+psycopg2-binary
+sshtunnel
+paramiko<3.0
+
 # Testing dependencies
 pytest
 pytest-asyncio
