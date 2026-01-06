@@ -92,6 +92,7 @@ def get_fresh_account_from_db(max_age_hours: int = 10) -> Optional[Dict]:
             cursor = conn.cursor()
             
             # Build query with exclusion list
+            # OFFSET 1 to skip the most recent (current) account and get the second one
             if used_list:
                 placeholders = ",".join(["%s"] * len(used_list))
                 query = f"""
@@ -101,7 +102,7 @@ def get_fresh_account_from_db(max_age_hours: int = 10) -> Optional[Dict]:
                       AND google_email NOT IN ({placeholders})
                       AND status IN ('active', 'pending')
                     ORDER BY created_at DESC
-                    LIMIT 1
+                    LIMIT 1 OFFSET 2
                 """
                 cursor.execute(query, used_list)
             else:
@@ -111,7 +112,7 @@ def get_fresh_account_from_db(max_age_hours: int = 10) -> Optional[Dict]:
                     WHERE created_at > NOW() - INTERVAL '{max_age_hours} hours'
                       AND status IN ('active', 'pending')
                     ORDER BY created_at DESC
-                    LIMIT 1
+                    LIMIT 1 OFFSET 2
                 """)
             
             row = cursor.fetchone()

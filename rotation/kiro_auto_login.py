@@ -15,6 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 CHROME_DEBUG_PORT = 9222
+KIRO_CLI_PATH = "/Users/vladimirdoronin/.local/bin/kiro-cli"
 
 
 def log(msg: str):
@@ -27,8 +28,35 @@ def get_chrome_driver():
     return webdriver.Chrome(options=options)
 
 
-def start_chrome_if_needed():
+CHROME_PROFILE_DIR = "/tmp/kiro_chrome_profile"
+
+
+def kill_chrome():
+    """Kill only our debug Chrome on port 9222, not Yandex or user's Chrome."""
+    log("Killing Chrome on port 9222...")
+    # Kill only processes listening on our debug port
+    subprocess.run(["lsof", "-ti", f":{CHROME_DEBUG_PORT}"], capture_output=True)
+    result = subprocess.run(
+        f"lsof -ti:{CHROME_DEBUG_PORT} | xargs kill -9 2>/dev/null",
+        shell=True, capture_output=True
+    )
+    subprocess.run(["pkill", "-9", "chromedriver"], capture_output=True)
+    time.sleep(1)
+    
+    # Remove profile dir to start completely fresh (no cached accounts)
+    import shutil
+    if os.path.exists(CHROME_PROFILE_DIR):
+        log(f"Removing Chrome profile: {CHROME_PROFILE_DIR}")
+        shutil.rmtree(CHROME_PROFILE_DIR, ignore_errors=True)
+    time.sleep(1)
+
+
+def start_chrome_if_needed(force_restart: bool = True):
     import socket
+    
+    if force_restart:
+        kill_chrome()
+    
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     result = sock.connect_ex(('127.0.0.1', CHROME_DEBUG_PORT))
     sock.close()
@@ -38,11 +66,23 @@ def start_chrome_if_needed():
         subprocess.Popen([
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             f"--remote-debugging-port={CHROME_DEBUG_PORT}",
-            "--user-data-dir=/tmp/kiro_chrome_profile",
+            f"--user-data-dir={CHROME_PROFILE_DIR}",
             "--no-first-run", "--no-default-browser-check",
+            "--disable-background-mode",
             "--window-size=1440,900", "about:blank"
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(3)
+        
+        # Wait for Chrome to actually start and be ready
+        for _ in range(10):
+            time.sleep(1)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('127.0.0.1', CHROME_DEBUG_PORT))
+            sock.close()
+            if result == 0:
+                log("Chrome is ready")
+                break
+        else:
+            log("Warning: Chrome may not be ready")
 
 
 def handle_chrome_popup(driver):
@@ -82,6 +122,7 @@ def switch_to_oauth_window(driver):
 
 def do_google_oauth(driver, email: str, password: str) -> bool:
     wait = WebDriverWait(driver, 15)
+    original_window = driver.current_window_handle
     
     try:
         # Click Google button
@@ -91,8 +132,25 @@ def do_google_oauth(driver, email: str, password: str) -> bool:
                 btn.click()
                 log("Clicked Google")
                 time.sleep(3)
-            except:
-                pass
+                
+                # Wait for OAuth window/popup
+                for _ in range(10):
+                    if len(driver.window_handles) > 1:
+                        break
+                    time.sleep(0.5)
+                
+                # Switch to OAuth window if opened
+                for handle in driver.window_handles:
+                    if handle != original_window:
+                        driver.switch_to.window(handle)
+                        log(f"Switched to OAuth window: {driver.current_url[:50]}")
+                        break
+                
+                time.sleep(2)
+            except Exception as e:
+                log(f"Google button error: {e}")
+        
+        log(f"Current URL: {driver.current_url[:80]}")
         
         # Enter email
         email_input = wait.until(EC.presence_of_element_located((
@@ -141,16 +199,89 @@ def do_google_oauth(driver, email: str, password: str) -> bool:
 
 
 def kiro_login(email: str, password: str) -> bool:
-    """Login to Kiro via Google OAuth."""
+    """Login to Kiro via Google OAuth - simple approach."""
     log(f"Kiro login: {email}")
     
+    # First logout
+    log("Running kiro-cli logout...")
+    subprocess.run([KIRO_CLI_PATH, "logout"], capture_output=True, timeout=10)
+    time.sleep(1)
+    
+    # Start kiro-cli login in background FIRST (it will listen on localhost:49153)
+    log("Starting kiro-cli login --social google...")
+    kiro_proc = subprocess.Popen(
+        [KIRO_CLI_PATH, "login", "--social", "google"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    time.sleep(3)  # Wait for it to open Yandex
+    
+    # Get the special Kiro URL from Yandex (contains redirect_uri to localhost)
+    kiro_url = None
+    log("Getting Kiro URL from Yandex...")
+    for _ in range(10):
+        try:
+            result = subprocess.run(
+                ["osascript", "-e", 'tell application "Yandex" to get URL of active tab of front window'],
+                capture_output=True, text=True, timeout=3
+            )
+            url = result.stdout.strip()
+            if "kiro.dev" in url and "redirect_uri" in url:
+                kiro_url = url
+                log(f"Got Kiro URL with redirect: {url[:80]}...")
+                break
+        except:
+            pass
+        time.sleep(0.5)
+    
+    # Close Yandex tab (not whole window)
+    log("Closing Yandex tab...")
+    try:
+        subprocess.run(
+            ["osascript", "-e", 'tell application "Yandex" to close active tab of front window'],
+            capture_output=True, timeout=3
+        )
+    except:
+        pass
+    time.sleep(1)
+    
+    # Now start clean Chrome
     start_chrome_if_needed()
     driver = get_chrome_driver()
     
     try:
-        driver.get("https://app.kiro.dev/signin")
+        # Open the special Kiro URL (with localhost redirect) in our Chrome
+        if kiro_url:
+            log(f"Opening Kiro URL in Chrome...")
+            driver.get(kiro_url)
+        else:
+            log("No special URL found, using default signin")
+            driver.get("https://app.kiro.dev/signin")
         time.sleep(2)
-        return do_google_oauth(driver, email, password)
+        
+        # Do OAuth flow
+        success = do_google_oauth(driver, email, password)
+        
+        if success:
+            # Wait for kiro-cli to receive callback and save token
+            log("Waiting for kiro-cli to complete...")
+            try:
+                stdout, stderr = kiro_proc.communicate(timeout=30)
+                log(f"kiro-cli exit code: {kiro_proc.returncode}")
+                if kiro_proc.returncode == 0:
+                    log("kiro-cli login successful!")
+                    return True
+                else:
+                    log(f"kiro-cli failed: {stderr.decode()[:200]}")
+                    return False
+            except subprocess.TimeoutExpired:
+                log("kiro-cli timeout")
+                kiro_proc.kill()
+                return False
+        else:
+            kiro_proc.kill()
+            return False
+            
     except Exception as e:
         log(f"Error: {e}")
         return False

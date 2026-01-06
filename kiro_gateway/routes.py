@@ -58,6 +58,19 @@ try:
 except ImportError:
     debug_logger = None
 
+# Import rotation manager for auto-rotation on 402
+try:
+    import sys
+    import os
+    # Add parent dir to path for rotation module
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from rotation.rotation_manager import handle_402_error
+    ROTATION_AVAILABLE = True
+    logger.info("Rotation module loaded successfully")
+except ImportError as e:
+    ROTATION_AVAILABLE = False
+    logger.warning(f"Rotation module not available: {e}")
+
 
 # --- Security scheme ---
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
@@ -300,19 +313,66 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
                 else:
                     # Still 402 - need account rotation
                     await http_client.close()
-                    logger.warning("Still 402 after reload - account limit reached, rotation needed")
+                    logger.warning("Still 402 after reload - account limit reached, attempting auto-rotation...")
                     
-                    # Return 402 with hint about rotation
-                    return JSONResponse(
-                        status_code=402,
-                        content={
-                            "error": {
-                                "message": "Account limit reached. Run: python rotation/rotation_manager.py 402",
-                                "type": "account_limit_reached",
-                                "code": 402
+                    # Try automatic rotation
+                    if ROTATION_AVAILABLE:
+                        logger.info("Starting automatic account rotation...")
+                        rotation_success = handle_402_error()
+                        
+                        if rotation_success:
+                            logger.info("Rotation successful! Reloading credentials and retrying request...")
+                            auth_manager.reload_credentials()
+                            
+                            # Retry with new account
+                            http_client = KiroHttpClient(auth_manager)
+                            retry_response = await http_client.request_with_retry(
+                                "POST",
+                                url,
+                                kiro_payload,
+                                stream=True
+                            )
+                            
+                            if retry_response.status_code == 200:
+                                logger.info("Request successful after rotation!")
+                                response = retry_response
+                            else:
+                                await http_client.close()
+                                logger.error(f"Request failed after rotation: {retry_response.status_code}")
+                                return JSONResponse(
+                                    status_code=retry_response.status_code,
+                                    content={
+                                        "error": {
+                                            "message": "Request failed even after account rotation",
+                                            "type": "rotation_failed",
+                                            "code": retry_response.status_code
+                                        }
+                                    }
+                                )
+                        else:
+                            logger.error("Automatic rotation failed - no available accounts")
+                            return JSONResponse(
+                                status_code=402,
+                                content={
+                                    "error": {
+                                        "message": "Account limit reached. Automatic rotation failed - no available accounts.",
+                                        "type": "account_limit_reached",
+                                        "code": 402
+                                    }
+                                }
+                            )
+                    else:
+                        logger.warning("Rotation module not available")
+                        return JSONResponse(
+                            status_code=402,
+                            content={
+                                "error": {
+                                    "message": "Account limit reached. Run: python rotation/rotation_manager.py 402",
+                                    "type": "account_limit_reached",
+                                    "code": 402
+                                }
                             }
-                        }
-                    )
+                        )
             else:
                 # Log access log for error (before flush, so it gets into app_logs)
                 logger.warning(
@@ -415,6 +475,35 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
     
     except HTTPException as e:
         await http_client.close()
+        
+        # Handle 504 (403 exhausted retries) - try rotation
+        if e.status_code == 504 and "Streaming failed" in str(e.detail):
+            logger.warning(f"Got 504 after exhausted 403 retries - attempting rotation...")
+            
+            if ROTATION_AVAILABLE:
+                logger.info("Starting automatic account rotation due to persistent 403...")
+                from rotation.rotation_manager import handle_auth_error
+                rotation_success = handle_auth_error()
+                
+                if rotation_success:
+                    logger.info("Rotation successful after 403! Reloading credentials...")
+                    auth_manager.reload_credentials()
+                    
+                    # Don't retry here - let client retry
+                    # Return a retriable error
+                    return JSONResponse(
+                        status_code=503,
+                        content={
+                            "error": {
+                                "message": "Account rotated successfully. Please retry your request.",
+                                "type": "rotation_completed",
+                                "code": 503
+                            }
+                        }
+                    )
+                else:
+                    logger.error("Rotation failed after 403")
+        
         # Log access log for HTTP error
         logger.warning(f"HTTP {e.status_code} - POST /v1/chat/completions - {e.detail}")
         # Flush debug logs on HTTP error ("errors" mode)

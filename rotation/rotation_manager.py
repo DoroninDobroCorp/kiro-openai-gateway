@@ -7,14 +7,25 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-from .account_provider import (
-    get_next_account,
-    mark_email_used,
-    mark_email_dead,
-    get_last_active_email,
-    get_fresh_account_from_db
-)
-from .kiro_auto_login import kiro_login
+# Support both relative and absolute imports
+try:
+    from .account_provider import (
+        get_next_account,
+        mark_email_used,
+        mark_email_dead,
+        get_last_active_email,
+        get_fresh_account_from_db
+    )
+    from .kiro_auto_login import kiro_login
+except ImportError:
+    from account_provider import (
+        get_next_account,
+        mark_email_used,
+        mark_email_dead,
+        get_last_active_email,
+        get_fresh_account_from_db
+    )
+    from kiro_auto_login import kiro_login
 
 
 def log(msg: str):
