@@ -192,11 +192,14 @@ class KiroAuthManager:
             conn = sqlite3.connect(str(path))
             cursor = conn.cursor()
             
-            # Load token data (try both kiro-cli and codewhisperer key formats)
+            # Load token data (try multiple key formats)
             cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("kirocli:odic:token",))
             token_row = cursor.fetchone()
             if not token_row:
                 cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("codewhisperer:odic:token",))
+                token_row = cursor.fetchone()
+            if not token_row:
+                cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("kirocli:social:token",))
                 token_row = cursor.fetchone()
             
             if token_row:
@@ -207,6 +210,8 @@ class KiroAuthManager:
                         self._access_token = token_data['access_token']
                     if 'refresh_token' in token_data:
                         self._refresh_token = token_data['refresh_token']
+                    if 'profile_arn' in token_data:
+                        self._profile_arn = token_data['profile_arn']
                     if 'region' in token_data:
                         self._region = token_data['region']
                         # Update URLs for new region
@@ -375,6 +380,24 @@ class KiroAuthManager:
         threshold = now.timestamp() + TOKEN_REFRESH_THRESHOLD
         
         return self._expires_at.timestamp() <= threshold
+
+    def reload_credentials(self) -> None:
+        """
+        Reloads credentials from file (useful after kiro-cli login).
+        
+        Clears current tokens and reloads from configured source.
+        """
+        self._access_token = None
+        self._expires_at = None
+        self._refresh_token = None
+        
+        if self._sqlite_db:
+            self._load_credentials_from_sqlite(self._sqlite_db)
+        elif self._creds_file:
+            self._load_credentials_from_file(self._creds_file)
+        
+        self._detect_auth_type()
+        logger.info("Credentials reloaded from file")
     
     async def _refresh_token_request(self) -> None:
         """

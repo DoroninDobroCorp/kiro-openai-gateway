@@ -279,26 +279,77 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
             except (json.JSONDecodeError, KeyError):
                 pass
             
-            # Log access log for error (before flush, so it gets into app_logs)
-            logger.warning(
-                f"HTTP {response.status_code} - POST /v1/chat/completions - {error_message[:100]}"
-            )
-            
-            # Flush debug logs on error ("errors" mode)
-            if debug_logger:
-                debug_logger.flush_on_error(response.status_code, error_message)
-            
-            # Return error in OpenAI API format
-            return JSONResponse(
-                status_code=response.status_code,
-                content={
-                    "error": {
-                        "message": error_message,
-                        "type": "kiro_api_error",
-                        "code": response.status_code
+            # On 402 (limit reached), reload credentials and retry once
+            # This handles the case when user switched Kiro account
+            if response.status_code == 402:
+                logger.info("Got 402, reloading credentials and retrying...")
+                auth_manager.reload_credentials()
+                
+                # Retry the request once with new credentials
+                http_client = KiroHttpClient(auth_manager)
+                retry_response = await http_client.request_with_retry(
+                    "POST",
+                    url,
+                    kiro_payload,
+                    stream=True
+                )
+                
+                if retry_response.status_code == 200:
+                    logger.info("Retry successful after credentials reload")
+                    response = retry_response
+                else:
+                    # Still failing, return original error
+                    try:
+                        retry_error = await retry_response.aread()
+                        error_text = retry_error.decode('utf-8', errors='replace')
+                        try:
+                            error_json = json.loads(error_text)
+                            if "message" in error_json:
+                                error_message = error_json["message"]
+                                if "reason" in error_json:
+                                    error_message = f"{error_message} (reason: {error_json['reason']})"
+                        except (json.JSONDecodeError, KeyError):
+                            pass
+                    except Exception:
+                        pass
+                    await http_client.close()
+                    
+                    logger.warning(
+                        f"HTTP {retry_response.status_code} - POST /v1/chat/completions - {error_message[:100]}"
+                    )
+                    if debug_logger:
+                        debug_logger.flush_on_error(retry_response.status_code, error_message)
+                    return JSONResponse(
+                        status_code=retry_response.status_code,
+                        content={
+                            "error": {
+                                "message": error_message,
+                                "type": "kiro_api_error",
+                                "code": retry_response.status_code
+                            }
+                        }
+                    )
+            else:
+                # Log access log for error (before flush, so it gets into app_logs)
+                logger.warning(
+                    f"HTTP {response.status_code} - POST /v1/chat/completions - {error_message[:100]}"
+                )
+                
+                # Flush debug logs on error ("errors" mode)
+                if debug_logger:
+                    debug_logger.flush_on_error(response.status_code, error_message)
+                
+                # Return error in OpenAI API format
+                return JSONResponse(
+                    status_code=response.status_code,
+                    content={
+                        "error": {
+                            "message": error_message,
+                            "type": "kiro_api_error",
+                            "code": response.status_code
+                        }
                     }
-                }
-            )
+                )
         
         # Prepare data for fallback token counting
         # Convert Pydantic models to dicts for tokenizer
