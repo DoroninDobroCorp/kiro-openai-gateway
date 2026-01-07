@@ -14,7 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
-CHROME_DEBUG_PORT = 9222
+CHROME_DEBUG_PORT = 9223  # Use different port than droid_new (9222)
 KIRO_CLI_PATH = "/Users/vladimirdoronin/.local/bin/kiro-cli"
 
 
@@ -32,8 +32,8 @@ CHROME_PROFILE_DIR = "/tmp/kiro_chrome_profile"
 
 
 def kill_chrome():
-    """Kill only our debug Chrome on port 9222, not Yandex or user's Chrome."""
-    log("Killing Chrome on port 9222...")
+    """Kill only our debug Chrome on port 9223, not Yandex or user's Chrome."""
+    log(f"Killing Chrome on port {CHROME_DEBUG_PORT}...")
     # Kill only processes listening on our debug port
     subprocess.run(["lsof", "-ti", f":{CHROME_DEBUG_PORT}"], capture_output=True)
     result = subprocess.run(
@@ -176,22 +176,37 @@ def do_google_oauth(driver, email: str, password: str) -> bool:
             handle_chrome_popup(driver)
             switch_to_oauth_window(driver)
         
-        # Click Continue on consent
-        for _ in range(5):
+        # Wait for auth_status=success (kiro-cli gets callback via postMessage, not redirect)
+        for _ in range(15):
             time.sleep(2)
             url = driver.current_url
+            log(f"Current URL: {url[:80]}")
             
-            if "localhost" in url or ("kiro.dev" in url and "error" not in url):
-                log("SUCCESS")
+            # Success = auth_status=success or localhost redirect
+            if "localhost" in url or "auth_status=success" in url:
+                log("SUCCESS - OAuth completed")
                 return True
             
+            # Error check
+            if "error" in url.lower():
+                log(f"OAuth error in URL: {url}")
+                return False
+            
+            # Try to click Continue/Allow buttons if present
             try:
                 driver.find_element(By.XPATH, '//button[contains(.,"Continue")]').click()
                 log("Clicked Continue")
             except:
                 pass
+            
+            try:
+                driver.find_element(By.XPATH, '//button[contains(.,"Allow")]').click()
+                log("Clicked Allow")
+            except:
+                pass
         
-        return "localhost" in driver.current_url
+        log("Timeout waiting for OAuth completion")
+        return False
         
     except Exception as e:
         log(f"OAuth error: {e}")
@@ -247,9 +262,11 @@ def kiro_login(email: str, password: str) -> bool:
     
     # Now start clean Chrome
     start_chrome_if_needed()
-    driver = get_chrome_driver()
+    time.sleep(2)  # Extra wait for Chrome to be fully ready
     
     try:
+        driver = get_chrome_driver()
+        
         # Open the special Kiro URL (with localhost redirect) in our Chrome
         if kiro_url:
             log(f"Opening Kiro URL in Chrome...")

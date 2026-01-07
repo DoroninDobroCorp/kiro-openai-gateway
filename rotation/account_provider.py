@@ -102,7 +102,7 @@ def get_fresh_account_from_db(max_age_hours: int = 10) -> Optional[Dict]:
                       AND google_email NOT IN ({placeholders})
                       AND status IN ('active', 'pending')
                     ORDER BY created_at DESC
-                    LIMIT 1 OFFSET 2
+                    LIMIT 1
                 """
                 cursor.execute(query, used_list)
             else:
@@ -112,7 +112,7 @@ def get_fresh_account_from_db(max_age_hours: int = 10) -> Optional[Dict]:
                     WHERE created_at > NOW() - INTERVAL '{max_age_hours} hours'
                       AND status IN ('active', 'pending')
                     ORDER BY created_at DESC
-                    LIMIT 1 OFFSET 2
+                    LIMIT 1
                 """)
             
             row = cursor.fetchone()
@@ -143,26 +143,143 @@ def get_account_password(email: str) -> Optional[str]:
         return None
 
 
+def create_new_account_task() -> Optional[Dict]:
+    """
+    Create a new account by adding buy_google task to droid_new queue.
+    Waits for the account to appear in factory_accounts DB.
+    
+    Returns account dict or None if failed.
+    """
+    if get_connection is None:
+        print("Warning: factory_accounts_db not available")
+        return None
+    
+    import time
+    
+    print("[ROTATION] Creating new account via droid_new queue...")
+    
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 1. Get available google_code
+            cursor.execute("""
+                SELECT code_id, code FROM google_codes
+                WHERE status = 'available'
+                ORDER BY imported_at DESC
+                LIMIT 1
+            """)
+            code_row = cursor.fetchone()
+            
+            if not code_row:
+                print("[ROTATION] No available google_codes!")
+                return None
+            
+            code_id, code = code_row
+            print(f"[ROTATION] Using google_code id={code_id}")
+            
+            # 2. Mark code as reserved
+            cursor.execute(
+                "UPDATE google_codes SET status = 'reserved' WHERE code_id = %s",
+                (code_id,)
+            )
+            
+            # 3. Create buy_google task
+            # NOTE: worker expects code_id in google_email field (legacy design)
+            cursor.execute("""
+                INSERT INTO registration_tasks
+                    (task_type, device_code, google_email, max_attempts)
+                VALUES ('buy_google', %s, %s, 10)
+                RETURNING task_id
+            """, (code, str(code_id)))
+            task_id = cursor.fetchone()[0]
+            conn.commit()
+            
+            print(f"[ROTATION] Created task #{task_id}, waiting for completion...")
+            
+            # 4. Poll for new account in factory_accounts (worker adds it there after buy)
+            # As soon as Google account is bought, we can use it - no need to wait for Factory registration
+            start_time = time.time()
+            max_wait = 300  # 5 minutes (Google buy is fast, ~1-2 min)
+            poll_interval = 10  # seconds
+            
+            while time.time() - start_time < max_wait:
+                time.sleep(poll_interval)
+                
+                # Check task status first
+                cursor.execute(
+                    "SELECT status FROM registration_tasks WHERE task_id = %s",
+                    (task_id,)
+                )
+                task = cursor.fetchone()
+                
+                if not task:
+                    print(f"[ROTATION] Task #{task_id} not found!")
+                    return None
+                
+                status = task[0]
+                elapsed = int(time.time() - start_time)
+                
+                if status == 'failed':
+                    print(f"[ROTATION] Task #{task_id} failed!")
+                    return None
+                
+                # Check if account appeared in factory_accounts (linked via google_codes)
+                cursor.execute("""
+                    SELECT fa.google_email, fa.google_password 
+                    FROM factory_accounts fa
+                    JOIN google_codes gc ON gc.factory_account_id = fa.account_id
+                    WHERE gc.code_id = %s
+                """, (code_id,))
+                account = cursor.fetchone()
+                
+                if account and account[0] and account[1]:
+                    email, password = account
+                    print(f"[ROTATION] Google account ready: {email} ({elapsed}s)")
+                    return {"email": email, "password": password, "source": "new_task"}
+                
+                print(f"[ROTATION] Task #{task_id} status: {status}, waiting... ({elapsed}s)")
+            
+            print(f"[ROTATION] Timeout waiting for task #{task_id}")
+            return None
+            
+    except Exception as e:
+        print(f"[ROTATION] Error creating new account: {e}")
+        return None
+
+
 def get_next_account() -> Optional[Dict]:
     """
     Get next account for Kiro login.
     
     Priority:
     1. Last active email we used (re-login)
-    2. Fresh account from DB (< 10 hours, not used)
+    2. Fresh account from DB (< 24 hours, not dead)
+    3. Create new account via droid_new queue
     """
-    # Try last active first
+    # Get dead emails to exclude
+    used = get_used_emails()
+    dead_emails = [e for e, info in used.items() if info["status"] == "dead"]
+    
+    # Try last active first (if not dead)
     last_email = get_last_active_email()
-    if last_email:
+    if last_email and last_email not in dead_emails:
         password = get_account_password(last_email)
         if password:
             return {"email": last_email, "password": password, "source": "last_active"}
     
-    # Try fresh from DB
-    fresh = get_fresh_account_from_db()
-    if fresh:
+    # Try fresh from DB (increased to 24 hours)
+    fresh = get_fresh_account_from_db(max_age_hours=24)
+    if fresh and fresh["email"] not in dead_emails:
         return {"email": fresh["email"], "password": fresh["password"], "source": "fresh_db"}
     
+    # DISABLED: Fallback to create new account via droid_new - too complex
+    # print("[ROTATION] No existing accounts available, creating new one...")
+    # new_account = create_new_account_task()
+    # if new_account:
+    #     return new_account
+    
+    print("[ROTATION] No existing accounts available!")
     return None
 
 

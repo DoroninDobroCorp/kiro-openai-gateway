@@ -14,7 +14,8 @@ try:
         mark_email_used,
         mark_email_dead,
         get_last_active_email,
-        get_fresh_account_from_db
+        get_fresh_account_from_db,
+        create_new_account_task
     )
     from .kiro_auto_login import kiro_login
 except ImportError:
@@ -23,7 +24,8 @@ except ImportError:
         mark_email_used,
         mark_email_dead,
         get_last_active_email,
-        get_fresh_account_from_db
+        get_fresh_account_from_db,
+        create_new_account_task
     )
     from kiro_auto_login import kiro_login
 
@@ -37,10 +39,15 @@ def do_rotation() -> bool:
     Perform account rotation.
     
     Returns True if successfully logged in with new account.
+    
+    Strategy:
+    1. Try existing account from DB
+    2. If login fails - mark as dead
+    3. If no working accounts - CREATE NEW via droid_new queue
     """
     log("Starting rotation...")
     
-    # Get next account
+    # Get next account (will try last_active, then fresh_db, then create_new)
     account = get_next_account()
     
     if not account:
@@ -62,21 +69,22 @@ def do_rotation() -> bool:
         return True
     else:
         log(f"FAILED: Could not login with {email}")
+        mark_email_dead(email)
         
-        # If this was last_active, mark as dead and try fresh
-        if source == "last_active":
-            log("Marking as dead, trying fresh account...")
-            mark_email_dead(email)
-            
-            fresh = get_fresh_account_from_db()
-            if fresh:
-                log(f"Trying fresh account: {fresh['email']}")
-                success = kiro_login(fresh["email"], fresh["password"])
-                if success:
-                    mark_email_used(fresh["email"], status="active")
-                    return True
-                else:
-                    mark_email_dead(fresh["email"])
+        # DISABLED: Creating new accounts via droid_new - too complex, doesn't work reliably
+        # if source in ("last_active", "fresh_db"):
+        #     log("Existing account failed, creating NEW account via droid_new...")
+        #     new_account = create_new_account_task()
+        #     if new_account:
+        #         log(f"New account created: {new_account['email']}")
+        #         success = kiro_login(new_account["email"], new_account["password"])
+        #         if success:
+        #             log(f"SUCCESS: Logged in with NEW account {new_account['email']}")
+        #             mark_email_used(new_account["email"], status="active")
+        #             return True
+        #         else:
+        #             log(f"FAILED: Could not login with new account")
+        #             mark_email_dead(new_account["email"])
         
         return False
 
