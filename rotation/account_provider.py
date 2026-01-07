@@ -10,7 +10,11 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 
 # Add droid_new to path for DB access
+# Path: kirodroid/kiro-openai-gateway/rotation/ -> go up 2 levels to kirodroid, then sibling droid_new
 DROID_NEW_PATH = Path(__file__).parent.parent.parent.parent / "droid_new"
+# If relative path doesn't work, use absolute
+if not DROID_NEW_PATH.exists():
+    DROID_NEW_PATH = Path("/Users/vladimirdoronin/VovkaNowEngineer/droid_new")
 sys.path.insert(0, str(DROID_NEW_PATH))
 
 try:
@@ -19,6 +23,42 @@ except ImportError:
     get_connection = None
 
 USED_EMAILS_FILE = Path.home() / ".kiro-gateway" / "used_emails.txt"
+USED_CODES_FILE = Path.home() / ".kiro-gateway" / "used_codes.txt"
+
+
+def _ensure_used_codes_file():
+    """Create used_codes file if not exists."""
+    USED_CODES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not USED_CODES_FILE.exists():
+        USED_CODES_FILE.write_text("# code|status|last_used\n")
+
+
+def get_used_codes() -> Dict[str, dict]:
+    """Get dict of used codes with their status."""
+    _ensure_used_codes_file()
+    result = {}
+    for line in USED_CODES_FILE.read_text().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.split("|")
+        if len(parts) >= 2:
+            code = parts[0]
+            status = parts[1] if len(parts) > 1 else "used"
+            last_used = parts[2] if len(parts) > 2 else ""
+            result[code] = {"status": status, "last_used": last_used}
+    return result
+
+
+def mark_code_used(code: str, status: str = "used"):
+    """Add or update code in used_codes file."""
+    _ensure_used_codes_file()
+    used = get_used_codes()
+    used[code] = {"status": status, "last_used": datetime.now().isoformat()}
+    
+    lines = ["# code|status|last_used"]
+    for c, info in used.items():
+        lines.append(f"{c}|{info['status']}|{info['last_used']}")
+    USED_CODES_FILE.write_text("\n".join(lines) + "\n")
 
 
 def _ensure_used_emails_file():
@@ -161,21 +201,36 @@ def buy_account_from_code() -> Optional[Dict]:
     import requests
     
     try:
+        # Get locally used codes to exclude
+        used_codes = get_used_codes()
+        used_codes_list = list(used_codes.keys())
+        
         with get_connection() as conn:
             cursor = conn.cursor()
             
-            # Get available code (don't modify status - we only read from droid_new)
-            cursor.execute("""
-                SELECT code_id, code, api_url 
-                FROM google_codes
-                WHERE status = 'available'
-                ORDER BY imported_at DESC
-                LIMIT 1
-            """)
+            # Get available code, excluding locally used ones
+            if used_codes_list:
+                placeholders = ",".join(["%s"] * len(used_codes_list))
+                cursor.execute(f"""
+                    SELECT code_id, code, api_url 
+                    FROM google_codes
+                    WHERE status = 'available'
+                      AND code NOT IN ({placeholders})
+                    ORDER BY imported_at DESC
+                    LIMIT 1
+                """, used_codes_list)
+            else:
+                cursor.execute("""
+                    SELECT code_id, code, api_url 
+                    FROM google_codes
+                    WHERE status = 'available'
+                    ORDER BY imported_at DESC
+                    LIMIT 1
+                """)
             code_row = cursor.fetchone()
             
             if not code_row:
-                print("[ROTATION] No available google_codes!")
+                print(f"[ROTATION] No available google_codes! (excluded {len(used_codes_list)} used)")
                 return None
             
             code_id, code, api_url = code_row
@@ -203,8 +258,8 @@ def buy_account_from_code() -> Optional[Dict]:
                         
                         print(f"[ROTATION] Got account: {email}")
                         
-                        # Mark email as used in kirodroid IMMEDIATELY
-                        # (regardless of whether kiro login succeeds)
+                        # Mark code and email as used IMMEDIATELY
+                        mark_code_used(code, status="success")
                         mark_email_used(email, status="active")
                         
                         return {
@@ -214,8 +269,9 @@ def buy_account_from_code() -> Optional[Dict]:
                             "code": code
                         }
                     else:
-                        # Code invalid/expired - mark email file so we know we tried
+                        # Code invalid/expired - mark as used so we don't try again
                         print(f"[ROTATION] Code {code[:8]}... invalid: {text[:50]}")
+                        mark_code_used(code, status="invalid")
                         # Don't try more codes - stop here
                         return None
                 else:
