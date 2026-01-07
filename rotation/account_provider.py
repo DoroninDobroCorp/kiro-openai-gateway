@@ -143,6 +143,97 @@ def get_account_password(email: str) -> Optional[str]:
         return None
 
 
+def buy_account_from_code() -> Optional[Dict]:
+    """
+    Buy a new Google account using an available code from droid_new DB.
+    
+    1. Get available code from google_codes table
+    2. Call API to get email|password
+    3. Mark email as used in kirodroid (regardless of success)
+    4. If fails - stop, don't try more codes
+    
+    Returns account dict or None if failed.
+    """
+    if get_connection is None:
+        print("[ROTATION] DB connection not available")
+        return None
+    
+    import requests
+    
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Get available code (don't modify status - we only read from droid_new)
+            cursor.execute("""
+                SELECT code_id, code, api_url 
+                FROM google_codes
+                WHERE status = 'available'
+                ORDER BY imported_at DESC
+                LIMIT 1
+            """)
+            code_row = cursor.fetchone()
+            
+            if not code_row:
+                print("[ROTATION] No available google_codes!")
+                return None
+            
+            code_id, code, api_url = code_row
+            if not api_url:
+                api_url = "https://sv5.api999api.com/google/"
+            
+            print(f"[ROTATION] Trying code {code[:8]}... from DB")
+            
+            # Call API to get email|password
+            url = f"{api_url}api.php?key_value={code}"
+            try:
+                resp = requests.get(url, timeout=60)
+                if resp.status_code == 200:
+                    text = resp.text.strip()
+                    if '|' in text and '@' in text:
+                        email, password = text.split('|')[:2]
+                        email = email.strip()
+                        password = password.strip()
+                        
+                        # Check if this email was already used for Kiro
+                        used = get_used_emails()
+                        if email in used:
+                            print(f"[ROTATION] Email {email} already used (status: {used[email]['status']})")
+                            return None
+                        
+                        print(f"[ROTATION] Got account: {email}")
+                        
+                        # Mark email as used in kirodroid IMMEDIATELY
+                        # (regardless of whether kiro login succeeds)
+                        mark_email_used(email, status="active")
+                        
+                        return {
+                            "email": email,
+                            "password": password,
+                            "source": "new_code",
+                            "code": code
+                        }
+                    else:
+                        # Code invalid/expired - mark email file so we know we tried
+                        print(f"[ROTATION] Code {code[:8]}... invalid: {text[:50]}")
+                        # Don't try more codes - stop here
+                        return None
+                else:
+                    print(f"[ROTATION] API error: {resp.status_code}")
+                    return None
+                    
+            except requests.Timeout:
+                print(f"[ROTATION] API timeout for code {code[:8]}...")
+                return None
+            except Exception as e:
+                print(f"[ROTATION] API request failed: {e}")
+                return None
+                
+    except Exception as e:
+        print(f"[ROTATION] Error buying account: {e}")
+        return None
+
+
 def create_new_account_task() -> Optional[Dict]:
     """
     Create a new account by adding buy_google task to droid_new queue.
@@ -268,18 +359,18 @@ def get_next_account() -> Optional[Dict]:
         if password:
             return {"email": last_email, "password": password, "source": "last_active"}
     
-    # Try fresh from DB (increased to 24 hours)
-    fresh = get_fresh_account_from_db(max_age_hours=24)
+    # Try fresh from DB (< 10 hours)
+    fresh = get_fresh_account_from_db(max_age_hours=10)
     if fresh and fresh["email"] not in dead_emails:
         return {"email": fresh["email"], "password": fresh["password"], "source": "fresh_db"}
     
-    # DISABLED: Fallback to create new account via droid_new - too complex
-    # print("[ROTATION] No existing accounts available, creating new one...")
-    # new_account = create_new_account_task()
-    # if new_account:
-    #     return new_account
+    # Fallback: buy new account from unused code
+    print("[ROTATION] No existing accounts available, trying to buy from code...")
+    new_account = buy_account_from_code()
+    if new_account:
+        return new_account
     
-    print("[ROTATION] No existing accounts available!")
+    print("[ROTATION] No accounts available!")
     return None
 
 
