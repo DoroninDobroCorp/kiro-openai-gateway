@@ -120,6 +120,119 @@ def switch_to_oauth_window(driver):
     return False
 
 
+def handle_google_confirmations(driver, max_attempts: int = 10) -> bool:
+    """Handle Google confirmation screens (Razumem/I understand) - can appear 1-2 times for new accounts."""
+    log("Checking for Google confirmations (Razumem/I understand)...")
+    
+    for attempt in range(max_attempts):
+        time.sleep(1)
+        
+        try:
+            url = driver.current_url
+        except:
+            continue
+            
+        # Already redirected - success
+        if "localhost" in url or "auth_status=success" in url or "kiro.dev" in url:
+            log("Redirected away from Google - confirmations done")
+            return True
+        
+        # Only handle on Google pages
+        if "accounts.google" not in url:
+            continue
+        
+        # Scroll down first
+        try:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+            time.sleep(0.3)
+        except:
+            pass
+        
+        button_clicked = False
+        
+        # Try confirm button by ID (Razumem)
+        try:
+            btn = driver.find_element(By.ID, "confirm")
+            if btn.is_displayed():
+                log("Found confirm button (Razumem)")
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
+                time.sleep(0.3)
+                driver.execute_script("arguments[0].click();", btn)
+                log("Clicked confirm/Razumem!")
+                button_clicked = True
+                time.sleep(2)
+                
+                # Check if button appeared again (can happen twice)
+                try:
+                    btn2 = driver.find_element(By.ID, "confirm")
+                    if btn2.is_displayed():
+                        log("Confirm button appeared AGAIN - clicking second time!")
+                        driver.execute_script("arguments[0].click();", btn2)
+                        time.sleep(2)
+                except:
+                    pass
+                continue
+        except:
+            pass
+        
+        # Try "I understand" button variants
+        if not button_clicked:
+            understand_xpaths = [
+                "//button[contains(translate(text(), 'IUNDERSTAND', 'iunderstand'), 'i understand')]",
+                "//button[contains(translate(., 'IUNDERSTAND', 'iunderstand'), 'i understand')]",
+                "//*[@role='button'][contains(translate(text(), 'IUNDERSTAND', 'iunderstand'), 'i understand')]",
+                "//span[contains(translate(text(), 'IUNDERSTAND', 'iunderstand'), 'i understand')]",
+            ]
+            for xpath in understand_xpaths:
+                try:
+                    btns = driver.find_elements(By.XPATH, xpath)
+                    for btn in btns:
+                        if btn.is_displayed() and btn.is_enabled():
+                            log(f"Found I understand button: {btn.text[:30]}")
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
+                            time.sleep(0.3)
+                            driver.execute_script("arguments[0].click();", btn)
+                            log("Clicked I understand!")
+                            button_clicked = True
+                            time.sleep(2)
+                            
+                            # Check if appeared again
+                            try:
+                                btns2 = driver.find_elements(By.XPATH, xpath)
+                                for btn2 in btns2:
+                                    if btn2.is_displayed() and btn2.is_enabled():
+                                        log("I understand appeared AGAIN - clicking!")
+                                        driver.execute_script("arguments[0].click();", btn2)
+                                        time.sleep(2)
+                                        break
+                            except:
+                                pass
+                            break
+                    if button_clicked:
+                        break
+                except:
+                    pass
+        
+        # Try Continue/Allow buttons
+        if not button_clicked:
+            for text in ["Continue", "Allow", "Next", "OK"]:
+                try:
+                    btn = driver.find_element(By.XPATH, f'//button[contains(.,"{text}")]')
+                    if btn.is_displayed():
+                        driver.execute_script("arguments[0].click();", btn)
+                        log(f"Clicked {text}")
+                        button_clicked = True
+                        time.sleep(2)
+                        break
+                except:
+                    pass
+        
+        if not button_clicked:
+            log(f"No confirmation button found (attempt {attempt + 1})")
+    
+    return True
+
+
 def do_google_oauth(driver, email: str, password: str) -> bool:
     wait = WebDriverWait(driver, 15)
     original_window = driver.current_window_handle
@@ -175,6 +288,9 @@ def do_google_oauth(driver, email: str, password: str) -> bool:
         if "chrome://" in driver.current_url:
             handle_chrome_popup(driver)
             switch_to_oauth_window(driver)
+        
+        # Handle Google confirmations (Razumem/I understand) - appears for new accounts
+        handle_google_confirmations(driver)
         
         # Wait for auth_status=success (kiro-cli gets callback via postMessage, not redirect)
         for _ in range(15):
