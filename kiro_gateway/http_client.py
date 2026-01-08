@@ -174,11 +174,15 @@ class KiroHttpClient:
                 
                 # 403 - token expired or account suspended
                 if response.status_code == 403:
-                    # Check if account is suspended
+                    # Check if account is suspended - read body to check
                     try:
-                        error_body = response.text
-                        if "TEMPORARILY_SUSPENDED" in error_body or "suspended" in error_body.lower():
-                            logger.error(f"Account SUSPENDED! Response: {error_body[:200]}")
+                        if stream:
+                            error_body = (await response.aread()).decode('utf-8', errors='ignore')
+                        else:
+                            error_body = response.text
+                        
+                        if "TEMPORARILY_SUSPENDED" in error_body or "temporarily is suspended" in error_body:
+                            logger.error(f"Account SUSPENDED! Response: {error_body[:300]}")
                             # Mark account as dead
                             try:
                                 from rotation.account_provider import mark_email_dead, get_last_active_email
@@ -188,10 +192,16 @@ class KiroHttpClient:
                                     logger.warning(f"Marked suspended account as dead: {current_email}")
                             except Exception as e:
                                 logger.error(f"Failed to mark account dead: {e}")
-                            # Don't retry - account is banned
-                            return response
-                    except:
-                        pass
+                            # Don't retry - account is banned, raise to trigger rotation
+                            raise HTTPException(
+                                status_code=403,
+                                detail=f"Account suspended: {error_body[:200]}"
+                            )
+                    except HTTPException:
+                        raise
+                    except Exception as e:
+                        logger.debug(f"Could not check 403 body: {e}")
+                    
                     logger.warning(f"Received 403, refreshing token (attempt {attempt + 1}/{MAX_RETRIES})")
                     await self.auth_manager.force_refresh()
                     continue
