@@ -73,14 +73,26 @@ def start_chrome_if_needed(force_restart: bool = True):
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         # Wait for Chrome to actually start and be ready
-        for _ in range(10):
+        for _ in range(15):
             time.sleep(1)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result = sock.connect_ex(('127.0.0.1', CHROME_DEBUG_PORT))
             sock.close()
             if result == 0:
-                log("Chrome is ready")
-                break
+                log("Chrome port is ready")
+                # Extra wait for Chrome to fully initialize
+                time.sleep(2)
+                # Verify we can actually connect via webdriver
+                try:
+                    options = webdriver.ChromeOptions()
+                    options.add_experimental_option('debuggerAddress', f'127.0.0.1:{CHROME_DEBUG_PORT}')
+                    test_driver = webdriver.Chrome(options=options)
+                    _ = test_driver.current_url
+                    log("Chrome is fully ready")
+                    break
+                except Exception as e:
+                    log(f"Chrome not ready yet: {e}")
+                    time.sleep(1)
         else:
             log("Warning: Chrome may not be ready")
 
@@ -378,10 +390,19 @@ def kiro_login(email: str, password: str) -> bool:
     
     # Now start clean Chrome
     start_chrome_if_needed()
-    time.sleep(2)  # Extra wait for Chrome to be fully ready
+    time.sleep(3)  # Extra wait for Chrome to be fully ready
     
     try:
         driver = get_chrome_driver()
+        
+        # Verify Chrome window is open and stable
+        try:
+            _ = driver.current_url
+            log(f"Chrome connected, current URL: {driver.current_url[:50]}")
+        except Exception as e:
+            log(f"Chrome not ready, waiting more... ({e})")
+            time.sleep(3)
+            driver = get_chrome_driver()
         
         # Open the special Kiro URL (with localhost redirect) in our Chrome
         if kiro_url:
@@ -390,7 +411,15 @@ def kiro_login(email: str, password: str) -> bool:
         else:
             log("No special URL found, using default signin")
             driver.get("https://app.kiro.dev/signin")
-        time.sleep(2)
+        time.sleep(3)
+        
+        # Verify page loaded
+        try:
+            current = driver.current_url
+            log(f"Page loaded: {current[:60]}")
+        except Exception as e:
+            log(f"ERROR: Chrome window closed unexpectedly: {e}")
+            return False
         
         # Do OAuth flow
         success = do_google_oauth(driver, email, password)
