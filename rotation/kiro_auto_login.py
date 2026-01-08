@@ -5,8 +5,11 @@ Based on droid_new/autoclicker/register.py
 import os
 import sys
 import time
+import json
+import sqlite3
 import subprocess
 from datetime import datetime
+from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -18,8 +21,46 @@ CHROME_DEBUG_PORT = 9223  # Use different port than droid_new (9222)
 KIRO_CLI_PATH = "/Users/vladimirdoronin/.local/bin/kiro-cli"
 
 
+KIRO_CLI_DB = Path.home() / "Library" / "Application Support" / "kiro-cli" / "data.sqlite3"
+
+
 def log(msg: str):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
+
+
+def verify_token_saved() -> bool:
+    """Verify that kiro-cli saved tokens to SQLite database."""
+    try:
+        if not KIRO_CLI_DB.exists():
+            log(f"SQLite DB not found: {KIRO_CLI_DB}")
+            return False
+        
+        conn = sqlite3.connect(str(KIRO_CLI_DB))
+        cursor = conn.cursor()
+        
+        # Check for social token (Google login)
+        cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("kirocli:social:token",))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            log("No token found in auth_kv table")
+            return False
+        
+        token_data = json.loads(row[0])
+        if not token_data.get("access_token"):
+            log("Token data missing access_token")
+            return False
+        if not token_data.get("refresh_token"):
+            log("Token data missing refresh_token")
+            return False
+        
+        log(f"Token verified: access_token present, refresh_token present, expires_at={token_data.get('expires_at', 'N/A')}")
+        return True
+        
+    except Exception as e:
+        log(f"Error verifying token: {e}")
+        return False
 
 
 def get_chrome_driver():
@@ -432,7 +473,14 @@ def kiro_login(email: str, password: str) -> bool:
                 log(f"kiro-cli exit code: {kiro_proc.returncode}")
                 if kiro_proc.returncode == 0:
                     log("kiro-cli login successful!")
-                    return True
+                    # Verify token was actually saved to SQLite
+                    time.sleep(1)  # Give kiro-cli time to write
+                    if verify_token_saved():
+                        log("Token verified in SQLite - login complete!")
+                        return True
+                    else:
+                        log("WARNING: Token not found in SQLite after login!")
+                        return False
                 else:
                     log(f"kiro-cli failed: {stderr.decode()[:200]}")
                     return False
