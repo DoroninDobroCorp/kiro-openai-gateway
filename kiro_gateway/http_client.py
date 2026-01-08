@@ -172,8 +172,26 @@ class KiroHttpClient:
                 if response.status_code == 200:
                     return response
                 
-                # 403 - token expired, refresh and retry
+                # 403 - token expired or account suspended
                 if response.status_code == 403:
+                    # Check if account is suspended
+                    try:
+                        error_body = response.text
+                        if "TEMPORARILY_SUSPENDED" in error_body or "suspended" in error_body.lower():
+                            logger.error(f"Account SUSPENDED! Response: {error_body[:200]}")
+                            # Mark account as dead
+                            try:
+                                from rotation.account_provider import mark_email_dead, get_last_active_email
+                                current_email = get_last_active_email()
+                                if current_email:
+                                    mark_email_dead(current_email)
+                                    logger.warning(f"Marked suspended account as dead: {current_email}")
+                            except Exception as e:
+                                logger.error(f"Failed to mark account dead: {e}")
+                            # Don't retry - account is banned
+                            return response
+                    except:
+                        pass
                     logger.warning(f"Received 403, refreshing token (attempt {attempt + 1}/{MAX_RETRIES})")
                     await self.auth_manager.force_refresh()
                     continue
