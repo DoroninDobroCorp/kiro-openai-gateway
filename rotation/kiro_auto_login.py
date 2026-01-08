@@ -28,6 +28,21 @@ def log(msg: str):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
 
 
+def close_chrome():
+    """Close our debug Chrome instance after login is complete."""
+    log("Closing Chrome (cleanup after login)...")
+    try:
+        # Kill Chrome processes on our debug port
+        subprocess.run(
+            f"lsof -ti:{CHROME_DEBUG_PORT} | xargs kill -9 2>/dev/null",
+            shell=True, capture_output=True, timeout=10
+        )
+        subprocess.run(["pkill", "-9", "chromedriver"], capture_output=True, timeout=5)
+        log("Chrome closed")
+    except Exception as e:
+        log(f"Error closing Chrome: {e}")
+
+
 def verify_token_saved() -> bool:
     """Verify that kiro-cli saved tokens to SQLite database."""
     try:
@@ -477,23 +492,31 @@ def kiro_login(email: str, password: str) -> bool:
                     time.sleep(1)  # Give kiro-cli time to write
                     if verify_token_saved():
                         log("Token verified in SQLite - login complete!")
+                        # Close Chrome after successful login (wait a bit for safety)
+                        time.sleep(3)
+                        close_chrome()
                         return True
                     else:
                         log("WARNING: Token not found in SQLite after login!")
+                        close_chrome()
                         return False
                 else:
                     log(f"kiro-cli failed: {stderr.decode()[:200]}")
+                    close_chrome()
                     return False
             except subprocess.TimeoutExpired:
                 log("kiro-cli timeout")
                 kiro_proc.kill()
+                close_chrome()
                 return False
         else:
             kiro_proc.kill()
+            close_chrome()
             return False
             
     except Exception as e:
         log(f"Error: {e}")
+        close_chrome()
         return False
 
 
