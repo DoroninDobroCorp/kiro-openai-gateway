@@ -9090,3 +9090,174 @@ Stacktrace:
 [32m2026-01-08 21:03:19[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
 [32m2026-01-08 21:03:19[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
 [32m2026-01-08 21:03:21[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:03:23[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:23[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:03:23[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61472 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:27[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:31[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:03:32[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:03:32[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:03:33[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:35[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61472 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:35[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:03:39[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:43[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:43[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:03:47[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:03:47[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:03:47[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:03:51[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:52[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61545 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:53[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:03:56[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:03:56[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:01[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:04[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:05[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:06[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:06[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:08[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61570 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:10[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:10[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:10[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:12[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61570 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:14[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:14[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:14[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:16[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:16[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:18[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:19[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61570 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:23[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:23[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:24[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:24[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:28[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:35[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:36[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:37[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:43[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:45[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:47[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:47[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:49[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:50[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61677 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:53[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:53[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:54[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:55[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:57[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61677 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:04:58[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:58[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:04:59[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:04:59[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:02[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61677 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:03[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:05[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:06[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:05:07[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:05:16[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:18[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:21[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61755 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+2026-01-08 21:05:23.144 | INFO     | kiro_gateway.routes:<module>:69 - Rotation module loaded successfully
+[32m2026-01-08 21:05:23[0m | [1mINFO    [0m | [36m__main__[0m:[36m<module>[0m:[36m305[0m - [1mStarting Uvicorn server...[0m
+[32m2026-01-08 21:05:23[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mStarted server process [12095][0m
+[32m2026-01-08 21:05:23[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mWaiting for application startup.[0m
+[32m2026-01-08 21:05:23[0m | [1mINFO    [0m | [36mmain[0m:[36mlifespan[0m:[36m234[0m - [1mStarting application... Creating state managers.[0m
+[32m2026-01-08 21:05:23[0m | [1mINFO    [0m | [36mkiro_gateway.auth[0m:[36m_load_credentials_from_sqlite[0m:[36m260[0m - [1mCredentials loaded from SQLite database: ~/Library/Application Support/kiro-cli/data.sqlite3[0m
+[32m2026-01-08 21:05:23[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mApplication startup complete.[0m
+[32m2026-01-08 21:05:23[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mUvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)[0m
+[32m2026-01-08 21:05:24[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:24[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:27[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61763 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:27[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:29[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:05:30[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61766 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:31[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:34[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61763 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:37[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:39[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:05:39[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:41[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61763 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:46[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:47[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:50[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:51[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:05:51[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:54[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:05:54[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61763 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:55[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:05:58[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:05:59[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:02[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:06[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:08[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:17[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:18[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:21[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:24[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:24[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:24[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:27[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61888 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:28[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:28[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:29[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:29[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:30[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:31[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:34[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61888 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:35[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:36[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:39[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:39[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:40[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:40[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:42[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61888 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:46[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:49[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:49[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:49[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:49[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:50[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:51[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61888 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:57[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:57[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:57[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:06:59[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:06:59[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:06:59[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:07:01[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61888 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:04[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m145.239.82.124:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:07[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:07:07[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:07:07[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:07:07[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:07:10[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:10[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61888 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:11[0m | [33m[1mWARNING [0m | [36mkiro_gateway.parsers[0m:[36m_finalize_tool_call[0m:[36m414[0m - [33m[1mFailed to parse tool 'Create' arguments: Expecting ',' delimiter: line 1 column 135 (char 134). Raw: {"file_path": "/Users/vladimirdoronin/VovkaNowEngineer/bmadgram/bmadgram-hub-/.bmad-core/epics/epic-33-interactive-spec-refinement.md"[0m
+[32m2026-01-08 21:07:11[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:07:11[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:07:11[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:14[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:61766 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:20[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:20[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:07:21[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:07:21[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:07:25[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:30[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:38[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:07:39[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:07:40[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:44[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:51[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:07:57[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:08:00[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:08:00[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m127.0.0.1:62069 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:08:00[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:08:01[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:08:06[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m2001:41d0:601:1100::280:0 - "POST /v1/chat/completions HTTP/1.1" 200[0m
+[32m2026-01-08 21:08:11[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:08:21[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m
+[32m2026-01-08 21:08:28[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mstream_wrapper[0m:[36m442[0m - [1mHTTP 200 - POST /v1/chat/completions (streaming) - completed[0m
+[32m2026-01-08 21:08:29[0m | [1mINFO    [0m | [36mkiro_gateway.routes[0m:[36mchat_completions[0m:[36m212[0m - [1mRequest to /v1/chat/completions (model=claude-opus-4-5, stream=True)[0m
+[32m2026-01-08 21:08:32[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1m62.4.42.140:0 - "GET /health HTTP/1.1" 200[0m

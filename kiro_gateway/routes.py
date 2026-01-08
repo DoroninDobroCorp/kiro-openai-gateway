@@ -476,6 +476,31 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
     except HTTPException as e:
         await http_client.close()
         
+        # Handle 403 with suspended account - rotation needed
+        if e.status_code == 403 and "suspended" in str(e.detail).lower():
+            logger.warning(f"Account suspended (403), attempting rotation...")
+            
+            if ROTATION_AVAILABLE:
+                logger.info("Starting automatic account rotation due to suspended account...")
+                from rotation.rotation_manager import handle_auth_error
+                rotation_success = handle_auth_error()
+                
+                if rotation_success:
+                    logger.info("Rotation successful after suspension! Reloading credentials...")
+                    auth_manager.reload_credentials()
+                    return JSONResponse(
+                        status_code=503,
+                        content={
+                            "error": {
+                                "message": "Account rotated successfully. Please retry your request.",
+                                "type": "rotation_completed",
+                                "code": 503
+                            }
+                        }
+                    )
+                else:
+                    logger.error("Rotation failed after account suspension")
+        
         # Handle 504 (403 exhausted retries) - try rotation
         if e.status_code == 504 and "Streaming failed" in str(e.detail):
             logger.warning(f"Got 504 after exhausted 403 retries - attempting rotation...")
