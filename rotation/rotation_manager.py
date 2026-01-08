@@ -2,6 +2,7 @@
 Kiro Rotation Manager
 
 Coordinates account rotation when 402 or auth errors occur.
+Standalone version - no droid_new dependency.
 """
 import sys
 from pathlib import Path
@@ -14,8 +15,6 @@ try:
         mark_email_used,
         mark_email_dead,
         get_last_active_email,
-        get_fresh_account_from_db,
-        create_new_account_task
     )
     from .kiro_auto_login import kiro_login
 except ImportError:
@@ -24,8 +23,6 @@ except ImportError:
         mark_email_used,
         mark_email_dead,
         get_last_active_email,
-        get_fresh_account_from_db,
-        create_new_account_task
     )
     from kiro_auto_login import kiro_login
 

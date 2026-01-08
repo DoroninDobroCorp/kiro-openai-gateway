@@ -1,64 +1,17 @@
 """
 Kiro Account Rotation - Account Provider
 
-Gets Google accounts from factory_accounts DB for Kiro login.
+Standalone version - no droid_new dependency.
+Uses local codes file for buying Google accounts.
 """
 import os
-import sys
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Optional, Dict, List
+from datetime import datetime
+from typing import Optional, Dict
 
-# Add droid_new to path for DB access
-# Path: kirodroid/kiro-openai-gateway/rotation/ -> go up 2 levels to kirodroid, then sibling droid_new
-DROID_NEW_PATH = Path(__file__).parent.parent.parent.parent / "droid_new"
-# If relative path doesn't work, use absolute
-if not DROID_NEW_PATH.exists():
-    DROID_NEW_PATH = Path("/Users/vladimirdoronin/VovkaNowEngineer/droid_new")
-sys.path.insert(0, str(DROID_NEW_PATH))
-
-try:
-    from core.factory_accounts_db import get_connection
-except ImportError:
-    get_connection = None
+from .local_codes_manager import get_next_code, mark_code_success, mark_code_invalid, get_stats
 
 USED_EMAILS_FILE = Path.home() / ".kiro-gateway" / "used_emails.txt"
-USED_CODES_FILE = Path.home() / ".kiro-gateway" / "used_codes.txt"
-
-
-def _ensure_used_codes_file():
-    """Create used_codes file if not exists."""
-    USED_CODES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    if not USED_CODES_FILE.exists():
-        USED_CODES_FILE.write_text("# code|status|last_used\n")
-
-
-def get_used_codes() -> Dict[str, dict]:
-    """Get dict of used codes with their status."""
-    _ensure_used_codes_file()
-    result = {}
-    for line in USED_CODES_FILE.read_text().splitlines():
-        if line.startswith("#") or not line.strip():
-            continue
-        parts = line.split("|")
-        if len(parts) >= 2:
-            code = parts[0]
-            status = parts[1] if len(parts) > 1 else "used"
-            last_used = parts[2] if len(parts) > 2 else ""
-            result[code] = {"status": status, "last_used": last_used}
-    return result
-
-
-def mark_code_used(code: str, status: str = "used"):
-    """Add or update code in used_codes file."""
-    _ensure_used_codes_file()
-    used = get_used_codes()
-    used[code] = {"status": status, "last_used": datetime.now().isoformat()}
-    
-    lines = ["# code|status|last_used"]
-    for c, info in used.items():
-        lines.append(f"{c}|{info['status']}|{info['last_used']}")
-    USED_CODES_FILE.write_text("\n".join(lines) + "\n")
 
 
 def _ensure_used_emails_file():
@@ -107,291 +60,120 @@ def get_last_active_email() -> Optional[str]:
     active = [(e, info) for e, info in used.items() if info["status"] == "active"]
     if not active:
         return None
-    # Sort by last_used, return most recent
     active.sort(key=lambda x: x[1].get("last_used", ""), reverse=True)
     return active[0][0]
 
 
-def get_fresh_account_from_db(max_age_hours: int = 10) -> Optional[Dict]:
-    """
-    Get fresh account from factory_accounts DB.
-    
-    Returns account that:
-    - Created less than max_age_hours ago
-    - Not already used for Kiro
-    """
-    if get_connection is None:
-        print("Warning: factory_accounts_db not available")
-        return None
-    
-    used = get_used_emails()
-    used_list = list(used.keys())
-    
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Build query with exclusion list
-            # OFFSET 1 to skip the most recent (current) account and get the second one
-            if used_list:
-                placeholders = ",".join(["%s"] * len(used_list))
-                query = f"""
-                    SELECT google_email, google_password
-                    FROM factory_accounts
-                    WHERE created_at > NOW() - INTERVAL '{max_age_hours} hours'
-                      AND google_email NOT IN ({placeholders})
-                      AND status IN ('active', 'pending')
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """
-                cursor.execute(query, used_list)
-            else:
-                cursor.execute(f"""
-                    SELECT google_email, google_password
-                    FROM factory_accounts
-                    WHERE created_at > NOW() - INTERVAL '{max_age_hours} hours'
-                      AND status IN ('active', 'pending')
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """)
-            
-            row = cursor.fetchone()
-            if row:
-                return {"email": row[0], "password": row[1]}
-            return None
-    except Exception as e:
-        print(f"DB error: {e}")
-        return None
-
-
 def get_account_password(email: str) -> Optional[str]:
-    """Get password for email from DB."""
-    if get_connection is None:
+    """
+    Get password for email from local storage.
+    
+    Passwords are stored in ~/.kiro-gateway/passwords.txt
+    Format: email|password
+    """
+    passwords_file = Path.home() / ".kiro-gateway" / "passwords.txt"
+    if not passwords_file.exists():
         return None
     
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT google_password FROM factory_accounts WHERE google_email = %s",
-                (email,)
-            )
-            row = cursor.fetchone()
-            return row[0] if row else None
-    except Exception as e:
-        print(f"DB error: {e}")
-        return None
+    for line in passwords_file.read_text().splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.split("|")
+        if len(parts) >= 2 and parts[0] == email:
+            return parts[1]
+    return None
+
+
+def _save_password(email: str, password: str):
+    """Save email/password to local storage."""
+    passwords_file = Path.home() / ".kiro-gateway" / "passwords.txt"
+    passwords_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    if not passwords_file.exists():
+        passwords_file.write_text("# email|password\n")
+    
+    # Check if already exists
+    existing = passwords_file.read_text()
+    if email in existing:
+        return
+    
+    with open(passwords_file, "a") as f:
+        f.write(f"{email}|{password}\n")
 
 
 def buy_account_from_code() -> Optional[Dict]:
     """
-    Buy a new Google account using an available code from droid_new DB.
+    Buy a new Google account using an available code from local file.
     
-    1. Get available code from google_codes table
+    1. Get available code from local codes file
     2. Call API to get email|password
-    3. Mark email as used in kirodroid (regardless of success)
-    4. If fails - stop, don't try more codes
+    3. Save password locally
+    4. Mark code as used
     
     Returns account dict or None if failed.
     """
-    if get_connection is None:
-        print("[ROTATION] DB connection not available")
-        return None
-    
     import requests
     
+    code_info = get_next_code()
+    if not code_info:
+        print("[ROTATION] No available codes!")
+        stats = get_stats()
+        print(f"[ROTATION] Stats: {stats}")
+        return None
+    
+    code = code_info["code"]
+    api_url = code_info.get("api_url", "https://sv5.api999api.com/google/")
+    
+    print(f"[ROTATION] Trying code {code[:8]}...")
+    
+    url = f"{api_url}api.php?key_value={code}"
     try:
-        # Get locally used codes to exclude
-        used_codes = get_used_codes()
-        used_codes_list = list(used_codes.keys())
-        
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Get available code, excluding locally used ones
-            if used_codes_list:
-                placeholders = ",".join(["%s"] * len(used_codes_list))
-                cursor.execute(f"""
-                    SELECT code_id, code, api_url 
-                    FROM google_codes
-                    WHERE status = 'available'
-                      AND code NOT IN ({placeholders})
-                    ORDER BY imported_at DESC
-                    LIMIT 1
-                """, used_codes_list)
+        resp = requests.get(url, timeout=60)
+        if resp.status_code == 200:
+            text = resp.text.strip()
+            if '|' in text and '@' in text:
+                email, password = text.split('|')[:2]
+                email = email.strip()
+                password = password.strip()
+                
+                # Check if this email was already used
+                used = get_used_emails()
+                if email in used:
+                    print(f"[ROTATION] Email {email} already used (status: {used[email]['status']})")
+                    mark_code_invalid(code, "email_reused")
+                    return None
+                
+                print(f"[ROTATION] Got account: {email}")
+                
+                # Save password locally
+                _save_password(email, password)
+                
+                # Mark code as success
+                mark_code_success(code, email)
+                mark_email_used(email, status="active")
+                
+                return {
+                    "email": email,
+                    "password": password,
+                    "source": "new_code",
+                    "code": code
+                }
             else:
-                cursor.execute("""
-                    SELECT code_id, code, api_url 
-                    FROM google_codes
-                    WHERE status = 'available'
-                    ORDER BY imported_at DESC
-                    LIMIT 1
-                """)
-            code_row = cursor.fetchone()
-            
-            if not code_row:
-                print(f"[ROTATION] No available google_codes! (excluded {len(used_codes_list)} used)")
+                print(f"[ROTATION] Code {code[:8]}... invalid: {text[:50]}")
+                mark_code_invalid(code, text[:30])
                 return None
-            
-            code_id, code, api_url = code_row
-            if not api_url:
-                api_url = "https://sv5.api999api.com/google/"
-            
-            print(f"[ROTATION] Trying code {code[:8]}... from DB")
-            
-            # Call API to get email|password
-            url = f"{api_url}api.php?key_value={code}"
-            try:
-                resp = requests.get(url, timeout=60)
-                if resp.status_code == 200:
-                    text = resp.text.strip()
-                    if '|' in text and '@' in text:
-                        email, password = text.split('|')[:2]
-                        email = email.strip()
-                        password = password.strip()
-                        
-                        # Check if this email was already used for Kiro
-                        used = get_used_emails()
-                        if email in used:
-                            print(f"[ROTATION] Email {email} already used (status: {used[email]['status']})")
-                            return None
-                        
-                        print(f"[ROTATION] Got account: {email}")
-                        
-                        # Mark code and email as used IMMEDIATELY
-                        mark_code_used(code, status="success")
-                        mark_email_used(email, status="active")
-                        
-                        return {
-                            "email": email,
-                            "password": password,
-                            "source": "new_code",
-                            "code": code
-                        }
-                    else:
-                        # Code invalid/expired - mark as used so we don't try again
-                        print(f"[ROTATION] Code {code[:8]}... invalid: {text[:50]}")
-                        mark_code_used(code, status="invalid")
-                        # Don't try more codes - stop here
-                        return None
-                else:
-                    print(f"[ROTATION] API error: {resp.status_code}")
-                    return None
-                    
-            except requests.Timeout:
-                print(f"[ROTATION] API timeout for code {code[:8]}...")
-                return None
-            except Exception as e:
-                print(f"[ROTATION] API request failed: {e}")
-                return None
-                
-    except Exception as e:
-        print(f"[ROTATION] Error buying account: {e}")
-        return None
-
-
-def create_new_account_task() -> Optional[Dict]:
-    """
-    Create a new account by adding buy_google task to droid_new queue.
-    Waits for the account to appear in factory_accounts DB.
-    
-    Returns account dict or None if failed.
-    """
-    if get_connection is None:
-        print("Warning: factory_accounts_db not available")
-        return None
-    
-    import time
-    
-    print("[ROTATION] Creating new account via droid_new queue...")
-    
-    try:
-        with get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # 1. Get available google_code
-            cursor.execute("""
-                SELECT code_id, code FROM google_codes
-                WHERE status = 'available'
-                ORDER BY imported_at DESC
-                LIMIT 1
-            """)
-            code_row = cursor.fetchone()
-            
-            if not code_row:
-                print("[ROTATION] No available google_codes!")
-                return None
-            
-            code_id, code = code_row
-            print(f"[ROTATION] Using google_code id={code_id}")
-            
-            # 2. Mark code as reserved
-            cursor.execute(
-                "UPDATE google_codes SET status = 'reserved' WHERE code_id = %s",
-                (code_id,)
-            )
-            
-            # 3. Create buy_google task
-            # NOTE: worker expects code_id in google_email field (legacy design)
-            cursor.execute("""
-                INSERT INTO registration_tasks
-                    (task_type, device_code, google_email, max_attempts)
-                VALUES ('buy_google', %s, %s, 10)
-                RETURNING task_id
-            """, (code, str(code_id)))
-            task_id = cursor.fetchone()[0]
-            conn.commit()
-            
-            print(f"[ROTATION] Created task #{task_id}, waiting for completion...")
-            
-            # 4. Poll for new account in factory_accounts (worker adds it there after buy)
-            # As soon as Google account is bought, we can use it - no need to wait for Factory registration
-            start_time = time.time()
-            max_wait = 300  # 5 minutes (Google buy is fast, ~1-2 min)
-            poll_interval = 10  # seconds
-            
-            while time.time() - start_time < max_wait:
-                time.sleep(poll_interval)
-                
-                # Check task status first
-                cursor.execute(
-                    "SELECT status FROM registration_tasks WHERE task_id = %s",
-                    (task_id,)
-                )
-                task = cursor.fetchone()
-                
-                if not task:
-                    print(f"[ROTATION] Task #{task_id} not found!")
-                    return None
-                
-                status = task[0]
-                elapsed = int(time.time() - start_time)
-                
-                if status == 'failed':
-                    print(f"[ROTATION] Task #{task_id} failed!")
-                    return None
-                
-                # Check if account appeared in factory_accounts (linked via google_codes)
-                cursor.execute("""
-                    SELECT fa.google_email, fa.google_password 
-                    FROM factory_accounts fa
-                    JOIN google_codes gc ON gc.factory_account_id = fa.account_id
-                    WHERE gc.code_id = %s
-                """, (code_id,))
-                account = cursor.fetchone()
-                
-                if account and account[0] and account[1]:
-                    email, password = account
-                    print(f"[ROTATION] Google account ready: {email} ({elapsed}s)")
-                    return {"email": email, "password": password, "source": "new_task"}
-                
-                print(f"[ROTATION] Task #{task_id} status: {status}, waiting... ({elapsed}s)")
-            
-            print(f"[ROTATION] Timeout waiting for task #{task_id}")
+        else:
+            print(f"[ROTATION] API error: {resp.status_code}")
+            mark_code_invalid(code, f"http_{resp.status_code}")
             return None
             
+    except requests.Timeout:
+        print(f"[ROTATION] API timeout for code {code[:8]}...")
+        mark_code_invalid(code, "timeout")
+        return None
     except Exception as e:
-        print(f"[ROTATION] Error creating new account: {e}")
+        print(f"[ROTATION] API request failed: {e}")
+        mark_code_invalid(code, str(e)[:30])
         return None
 
 
@@ -401,10 +183,8 @@ def get_next_account() -> Optional[Dict]:
     
     Priority:
     1. Last active email we used (re-login)
-    2. Fresh account from DB (< 24 hours, not dead)
-    3. Create new account via droid_new queue
+    2. Buy new account from code
     """
-    # Get dead emails to exclude
     used = get_used_emails()
     dead_emails = [e for e, info in used.items() if info["status"] == "dead"]
     
@@ -415,13 +195,8 @@ def get_next_account() -> Optional[Dict]:
         if password:
             return {"email": last_email, "password": password, "source": "last_active"}
     
-    # Try fresh from DB (< 10 hours)
-    fresh = get_fresh_account_from_db(max_age_hours=10)
-    if fresh and fresh["email"] not in dead_emails:
-        return {"email": fresh["email"], "password": fresh["password"], "source": "fresh_db"}
-    
-    # Fallback: buy new account from unused code
-    print("[ROTATION] No existing accounts available, trying to buy from code...")
+    # Buy new account from code
+    print("[ROTATION] No existing accounts available, buying from code...")
     new_account = buy_account_from_code()
     if new_account:
         return new_account
@@ -431,13 +206,17 @@ def get_next_account() -> Optional[Dict]:
 
 
 if __name__ == "__main__":
+    from .local_codes_manager import print_stats
+    
     print("Testing account provider...")
     print(f"Used emails file: {USED_EMAILS_FILE}")
     print(f"Used emails: {get_used_emails()}")
     print(f"Last active: {get_last_active_email()}")
+    print()
+    print_stats()
     
     account = get_next_account()
     if account:
-        print(f"Next account: {account['email']} (source: {account['source']})")
+        print(f"\nNext account: {account['email']} (source: {account['source']})")
     else:
-        print("No account available")
+        print("\nNo account available")
