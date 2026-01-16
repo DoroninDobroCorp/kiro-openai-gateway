@@ -232,6 +232,16 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
     
     # Generate conversation ID
     conversation_id = generate_conversation_id()
+
+    # Opus is now available again (2026-01-16)
+    # opus_aliases = {
+    #     "claude-opus-4-5",
+    #     "claude-opus-4-5-20251101",
+    #     "claude-opus-4.5",
+    # }
+    # if request_data.model in opus_aliases:
+    #     logger.warning("Opus model unavailable, switching to claude-sonnet-4-5")
+    #     request_data = request_data.model_copy(update={"model": "claude-sonnet-4-5"})
     
     # Build payload for Kiro
     # profileArn is only needed for Kiro Desktop auth
@@ -283,54 +293,65 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
             
             # Try to parse JSON response from Kiro to extract error message
             error_message = error_text
+            error_reason = None
             try:
                 error_json = json.loads(error_text)
                 if "message" in error_json:
                     error_message = error_json["message"]
                     if "reason" in error_json:
                         error_message = f"{error_message} (reason: {error_json['reason']})"
+                        error_reason = error_json.get("reason")
             except (json.JSONDecodeError, KeyError):
                 pass
+
+            # Fallback: if Opus is unavailable for this account, retry with Sonnet
+            if response.status_code == 400 and error_reason == "INVALID_MODEL_ID":
+                opus_aliases = {
+                    "claude-opus-4-5",
+                    "claude-opus-4-5-20251101",
+                    "claude-opus-4.5",
+                }
+                if request_data.model in opus_aliases:
+                    logger.warning("Opus model not available, retrying with claude-sonnet-4-5")
+                    fallback_request = request_data.model_copy(update={"model": "claude-sonnet-4-5"})
+                    fallback_payload = build_kiro_payload(
+                        fallback_request,
+                        conversation_id,
+                        profile_arn_for_payload
+                    )
+                    http_client = KiroHttpClient(auth_manager)
+                    retry_response = await http_client.request_with_retry(
+                        "POST",
+                        url,
+                        fallback_payload,
+                        stream=True
+                    )
+                    if retry_response.status_code == 200:
+                        response = retry_response
+                    else:
+                        await http_client.close()
+                
             
             # On 402 (limit reached), reload credentials and retry once
             # This handles the case when user switched Kiro account
             if response.status_code == 402:
                 logger.info("Got 402, reloading credentials and retrying...")
-                auth_manager.reload_credentials()
+                reload_ok = auth_manager.reload_credentials()
                 
-                # Retry the request once with new credentials
-                http_client = KiroHttpClient(auth_manager)
-                retry_response = await http_client.request_with_retry(
-                    "POST",
-                    url,
-                    kiro_payload,
-                    stream=True
-                )
-                
-                if retry_response.status_code == 200:
-                    logger.info("Retry successful after credentials reload")
-                    response = retry_response
-                else:
-                    # Still 402 - need account rotation
-                    await http_client.close()
-                    logger.warning("Still 402 after reload - account limit reached, attempting auto-rotation...")
-                    
-                    # Try automatic rotation
+                if not reload_ok:
+                    # Credentials reload failed - go straight to rotation
+                    logger.warning("Credentials reload failed (no valid token), going straight to rotation...")
                     if ROTATION_AVAILABLE:
                         logger.info("Starting automatic account rotation...")
                         rotation_success = handle_402_error()
                         
                         if rotation_success:
-                            logger.info("Rotation successful! Reloading credentials and retrying request...")
+                            logger.info("Rotation successful! Reloading credentials...")
                             auth_manager.reload_credentials()
                             
-                            # Retry with new account
                             http_client = KiroHttpClient(auth_manager)
                             retry_response = await http_client.request_with_retry(
-                                "POST",
-                                url,
-                                kiro_payload,
-                                stream=True
+                                "POST", url, kiro_payload, stream=True
                             )
                             
                             if retry_response.status_code == 200:
@@ -341,38 +362,89 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
                                 logger.error(f"Request failed after rotation: {retry_response.status_code}")
                                 return JSONResponse(
                                     status_code=retry_response.status_code,
-                                    content={
-                                        "error": {
-                                            "message": "Request failed even after account rotation",
-                                            "type": "rotation_failed",
-                                            "code": retry_response.status_code
-                                        }
-                                    }
+                                    content={"error": {"message": "Request failed after rotation", "type": "rotation_failed", "code": retry_response.status_code}}
                                 )
                         else:
-                            logger.error("Automatic rotation failed - no available accounts")
+                            logger.error("Automatic rotation failed")
                             return JSONResponse(
                                 status_code=402,
-                                content={
-                                    "error": {
-                                        "message": "Account limit reached. Automatic rotation failed - no available accounts.",
-                                        "type": "account_limit_reached",
-                                        "code": 402
-                                    }
-                                }
+                                content={"error": {"message": "Account limit reached. Rotation failed.", "type": "account_limit_reached", "code": 402}}
                             )
                     else:
-                        logger.warning("Rotation module not available")
                         return JSONResponse(
                             status_code=402,
-                            content={
-                                "error": {
-                                    "message": "Account limit reached. Run: python rotation/rotation_manager.py 402",
-                                    "type": "account_limit_reached",
-                                    "code": 402
-                                }
-                            }
+                            content={"error": {"message": "Account limit reached. No rotation available.", "type": "account_limit_reached", "code": 402}}
                         )
+                else:
+                    # Credentials reloaded OK - try retry with new credentials
+                    try:
+                        http_client = KiroHttpClient(auth_manager)
+                        retry_response = await http_client.request_with_retry(
+                            "POST", url, kiro_payload, stream=True
+                        )
+                        
+                        if retry_response.status_code == 200:
+                            logger.info("Retry successful after credentials reload")
+                            response = retry_response
+                        else:
+                            # Still 402 - need account rotation
+                            await http_client.close()
+                            logger.warning("Still 402 after reload - account limit reached, attempting auto-rotation...")
+                            
+                            if ROTATION_AVAILABLE:
+                                logger.info("Starting automatic account rotation...")
+                                rotation_success = handle_402_error()
+                                
+                                if rotation_success:
+                                    logger.info("Rotation successful! Reloading credentials and retrying request...")
+                                    auth_manager.reload_credentials()
+                                    
+                                    http_client = KiroHttpClient(auth_manager)
+                                    retry_response = await http_client.request_with_retry(
+                                        "POST", url, kiro_payload, stream=True
+                                    )
+                                    
+                                    if retry_response.status_code == 200:
+                                        logger.info("Request successful after rotation!")
+                                        response = retry_response
+                                    else:
+                                        await http_client.close()
+                                        logger.error(f"Request failed after rotation: {retry_response.status_code}")
+                                        return JSONResponse(
+                                            status_code=retry_response.status_code,
+                                            content={"error": {"message": "Request failed even after account rotation", "type": "rotation_failed", "code": retry_response.status_code}}
+                                        )
+                                else:
+                                    logger.error("Automatic rotation failed - no available accounts")
+                                    return JSONResponse(
+                                        status_code=402,
+                                        content={"error": {"message": "Account limit reached. Automatic rotation failed.", "type": "account_limit_reached", "code": 402}}
+                                    )
+                            else:
+                                logger.warning("Rotation module not available")
+                                return JSONResponse(
+                                    status_code=402,
+                                    content={"error": {"message": "Account limit reached. Run: python rotation/rotation_manager.py 402", "type": "account_limit_reached", "code": 402}}
+                                )
+                    except Exception as retry_err:
+                        # Token invalid after reload - go to rotation
+                        if "Refresh token" in str(retry_err) or "token" in str(retry_err).lower():
+                            logger.warning(f"Token invalid after reload ({retry_err}), trying rotation...")
+                            if ROTATION_AVAILABLE:
+                                rotation_success = handle_402_error()
+                                if rotation_success:
+                                    logger.info("Rotation successful after token error!")
+                                    auth_manager.reload_credentials()
+                                    return JSONResponse(
+                                        status_code=503,
+                                        content={"error": {"message": "Account rotated. Please retry.", "type": "rotation_completed", "code": 503}}
+                                    )
+                            logger.error(f"Rotation failed or unavailable after token error")
+                            return JSONResponse(
+                                status_code=500,
+                                content={"error": {"message": f"Token error: {retry_err}", "type": "token_error", "code": 500}}
+                            )
+                        raise
             else:
                 # Log access log for error (before flush, so it gets into app_logs)
                 logger.warning(
@@ -538,6 +610,32 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
     except Exception as e:
         await http_client.close()
         logger.error(f"Internal error: {e}", exc_info=True)
+        
+        # Handle "Refresh token is not set" - try rotation
+        error_str = str(e).lower()
+        if "refresh token" in error_str or "token is not set" in error_str:
+            logger.warning(f"Token error detected ({e}), attempting rotation...")
+            if ROTATION_AVAILABLE:
+                from rotation.rotation_manager import handle_auth_error
+                rotation_success = handle_auth_error()
+                if rotation_success:
+                    logger.info("Rotation successful after token error!")
+                    auth_manager.reload_credentials()
+                    return JSONResponse(
+                        status_code=503,
+                        content={
+                            "error": {
+                                "message": "Account rotated successfully. Please retry your request.",
+                                "type": "rotation_completed",
+                                "code": 503
+                            }
+                        }
+                    )
+                else:
+                    logger.error("Rotation failed after token error")
+            else:
+                logger.warning("Rotation not available for token error")
+        
         # Log access log for internal error
         logger.error(f"HTTP 500 - POST /v1/chat/completions - {str(e)[:100]}")
         # Flush debug logs on internal error ("errors" mode)
