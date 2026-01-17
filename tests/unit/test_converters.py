@@ -2005,8 +2005,8 @@ class TestBuildKiroPayload:
         
         print(f"Result: {result}")
         model_id = result["conversationState"]["currentMessage"]["userInputMessage"]["modelId"]
-        # claude-sonnet-4-5 should map to CLAUDE_SONNET_4_5_20250929_V1_0
-        assert model_id == "CLAUDE_SONNET_4_5_20250929_V1_0"
+        # claude-sonnet-4-5 should map to claude-sonnet-4.5
+        assert model_id == "claude-sonnet-4.5"
     
     def test_long_tool_description_added_to_system_prompt(self):
         """

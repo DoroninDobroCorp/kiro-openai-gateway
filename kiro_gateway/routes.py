@@ -548,12 +548,32 @@ async def chat_completions(request: Request, request_data: ChatCompletionRequest
     except HTTPException as e:
         await http_client.close()
         
-        # Handle 403 with suspended account - rotation needed
+        # Handle 403 with suspended account - try reload first, then rotation
         if e.status_code == 403 and "suspended" in str(e.detail).lower():
-            logger.warning(f"Account suspended (403), attempting rotation...")
+            logger.warning(f"Account suspended (403), trying to reload credentials from SQLite first...")
             
+            # First try: maybe user already logged in with new account via kiro-cli
+            old_profile = auth_manager.profile_arn
+            reload_ok = auth_manager.reload_credentials()
+            new_profile = auth_manager.profile_arn
+            
+            # Check if account actually changed (different profile_arn)
+            if reload_ok and new_profile and new_profile != old_profile:
+                logger.info(f"New account detected! Profile changed: {old_profile} -> {new_profile}")
+                return JSONResponse(
+                    status_code=503,
+                    content={
+                        "error": {
+                            "message": "New credentials loaded from kiro-cli. Please retry your request.",
+                            "type": "credentials_reloaded",
+                            "code": 503
+                        }
+                    }
+                )
+            
+            # Second try: automatic rotation
             if ROTATION_AVAILABLE:
-                logger.info("Starting automatic account rotation due to suspended account...")
+                logger.info("Reload didn't help (same account), starting automatic account rotation...")
                 from rotation.rotation_manager import handle_auth_error
                 rotation_success = handle_auth_error()
                 

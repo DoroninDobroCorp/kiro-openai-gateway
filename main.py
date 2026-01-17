@@ -28,6 +28,7 @@ Usage:
     python main.py
 """
 
+import asyncio
 import logging
 import sys
 from contextlib import asynccontextmanager
@@ -49,6 +50,7 @@ from kiro_gateway.config import (
     KIRO_CLI_DB_FILE,
     PROXY_API_KEY,
     LOG_LEVEL,
+    CREDENTIALS_AUTO_RELOAD_SECONDS,
     _warn_deprecated_debug_setting,
     _warn_timeout_configuration,
 )
@@ -118,6 +120,27 @@ def setup_logging_intercept():
 
 # Configure uvicorn/fastapi log interception
 setup_logging_intercept()
+
+
+async def credentials_auto_reload_loop(app: FastAPI) -> None:
+    interval = CREDENTIALS_AUTO_RELOAD_SECONDS
+    if interval <= 0:
+        return
+    auth_manager: KiroAuthManager = app.state.auth_manager
+    if not auth_manager.has_reloadable_credentials():
+        return
+
+    logger.info(f"Credential auto-reload enabled (interval={interval}s)")
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            reloaded = await auth_manager.reload_if_changed_async()
+            if reloaded:
+                logger.info("Credentials reloaded from storage")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.warning(f"Credential auto-reload failed: {e}")
 
 
 # --- Configuration Validation ---
@@ -245,9 +268,20 @@ async def lifespan(app: FastAPI):
     
     # Create model cache
     app.state.model_cache = ModelInfoCache()
+
+    reload_task = None
+    if CREDENTIALS_AUTO_RELOAD_SECONDS > 0 and app.state.auth_manager.has_reloadable_credentials():
+        reload_task = asyncio.create_task(credentials_auto_reload_loop(app))
+    app.state.credentials_reload_task = reload_task
     
     yield
     
+    if reload_task:
+        reload_task.cancel()
+        try:
+            await reload_task
+        except asyncio.CancelledError:
+            pass
     logger.info("Shutting down application.")
 
 

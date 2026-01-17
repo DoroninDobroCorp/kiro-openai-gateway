@@ -133,6 +133,10 @@ KIRO_Q_HOST_TEMPLATE: str = "https://q.{region}.amazonaws.com"
 # Default 10 minutes - refresh token in advance to avoid errors
 TOKEN_REFRESH_THRESHOLD: int = 600
 
+# Auto-reload credentials from storage (SQLite/JSON) interval in seconds.
+# Set to 0 to disable.
+CREDENTIALS_AUTO_RELOAD_SECONDS: int = int(os.getenv("CREDENTIALS_AUTO_RELOAD_SECONDS", "15"))
+
 # ==================================================================================================
 # Retry Configuration
 # ==================================================================================================
@@ -155,20 +159,17 @@ MODEL_MAPPING: Dict[str, str] = {
     "claude-opus-4-5": "claude-opus-4.5",
     "claude-opus-4-5-20251101": "claude-opus-4.5",
     
-    # Claude Haiku 4.5 - fast model
-    "claude-haiku-4-5": "claude-haiku-4.5",
-    "claude-haiku-4.5": "claude-haiku-4.5",  # Direct passthrough
-    
     # Claude Sonnet 4.5 - enhanced model
-    "claude-sonnet-4-5": "CLAUDE_SONNET_4_5_20250929_V1_0",
-    "claude-sonnet-4-5-20250929": "CLAUDE_SONNET_4_5_20250929_V1_0",
+    "claude-sonnet-4-5": "claude-sonnet-4.5",
+    "claude-sonnet-4.5": "claude-sonnet-4.5",
+    "claude-sonnet-4-5-20250929": "claude-sonnet-4.5",
     
     # Claude Sonnet 4 - balanced model
-    "claude-sonnet-4": "CLAUDE_SONNET_4_20250514_V1_0",
-    "claude-sonnet-4-20250514": "CLAUDE_SONNET_4_20250514_V1_0",
+    "claude-sonnet-4": "claude-sonnet-4",
+    "claude-sonnet-4-20250514": "claude-sonnet-4",
     
     # Claude 3.7 Sonnet - legacy model
-    "claude-3-7-sonnet-20250219": "CLAUDE_3_7_SONNET_20250219_V1_0",
+    "claude-3-7-sonnet-20250219": "claude-3-7-sonnet-20250219",
     
     # Aliases for convenience
     "auto": "claude-sonnet-4.5",
@@ -177,14 +178,8 @@ MODEL_MAPPING: Dict[str, str] = {
 # List of available models for /v1/models endpoint
 # These models will be displayed to clients as available
 AVAILABLE_MODELS: List[str] = [
-    "claude-opus-4-5",
-    "claude-opus-4-5-20251101",
-    "claude-haiku-4-5",
     "claude-sonnet-4-5",
-    "claude-sonnet-4-5-20250929",
-    "claude-sonnet-4",
-    "claude-sonnet-4-20250514",
-    "claude-3-7-sonnet-20250219",
+    "claude-sonnet-4.5",
 ]
 
 # ==================================================================================================

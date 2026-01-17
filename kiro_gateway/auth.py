@@ -225,6 +225,48 @@ class KiroAuthManager:
         async with self._lock:
             return self.reload_if_changed()
     
+    def _load_credentials_from_aws_sso_cache(self) -> bool:
+        """
+        Loads credentials from AWS SSO cache as fallback.
+        
+        Returns:
+            True if credentials were loaded successfully, False otherwise
+        """
+        sso_cache_path = Path.home() / ".aws" / "sso" / "cache" / "kiro-auth-token.json"
+        
+        if not sso_cache_path.exists():
+            return False
+            
+        try:
+            with open(sso_cache_path, 'r') as f:
+                sso_data = json.load(f)
+            
+            access_token = sso_data.get('accessToken')
+            refresh_token = sso_data.get('refreshToken')
+            expires_str = sso_data.get('expiresAt')
+            
+            if access_token and refresh_token and expires_str:
+                self._access_token = access_token
+                self._refresh_token = refresh_token
+                
+                # Parse expires_at
+                try:
+                    if expires_str.endswith('Z'):
+                        self._expires_at = datetime.fromisoformat(expires_str.replace('Z', '+00:00'))
+                    else:
+                        self._expires_at = datetime.fromisoformat(expires_str)
+                except Exception as e:
+                    logger.warning(f"Failed to parse expiresAt from AWS SSO cache: {e}")
+                    return False
+                
+                logger.info("Credentials loaded from AWS SSO cache")
+                return True
+                
+        except Exception as e:
+            logger.warning(f"Failed to load AWS SSO cache: {e}")
+            
+        return False
+
     def _load_credentials_from_sqlite(self, db_path: str) -> None:
         """
         Loads credentials from kiro-cli SQLite database.
@@ -473,6 +515,15 @@ class KiroAuthManager:
         
         if self._sqlite_db:
             self._load_credentials_from_sqlite(self._sqlite_db)
+            
+            # If SQLite token is expired, try AWS SSO cache as fallback
+            if self._expires_at:
+                now = datetime.now(timezone.utc)
+                if self._expires_at <= now:
+                    logger.info("SQLite token expired, trying AWS SSO cache as fallback")
+                    if self._load_credentials_from_aws_sso_cache():
+                        logger.info("Successfully loaded fresh token from AWS SSO cache")
+                    
         elif self._creds_file:
             self._load_credentials_from_file(self._creds_file)
         

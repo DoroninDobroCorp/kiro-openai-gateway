@@ -1,5 +1,29 @@
-# Exported 67 codes from droid_new DB (2026-01-08)
 # Format: code|api_url
+# Valid codes first (2026-01-13)
+Am5SxGYP9XMp|https://sv5.api999api.com/google/
+k5JlcMkzStFX|https://sv5.api999api.com/google/
+# New codes (2026-01-13)
+XUCq4aOVFkRP|https://sv5.api999api.com/google/
+34S9OO1Dk1IK|https://sv5.api999api.com/google/
+6HCoatRz640O|https://sv5.api999api.com/google/
+6yqtsoXfj7re|https://sv5.api999api.com/google/
+SNaHkWePU5kb|https://sv5.api999api.com/google/
+RtwMDbYiWV7p|https://sv5.api999api.com/google/
+wQ6yozQIwIAs|https://sv5.api999api.com/google/
+262OxuOBoPxR|https://sv5.api999api.com/google/
+qA6VxVe1iQ3I|https://sv5.api999api.com/google/
+p7OHPz76wn73|https://sv5.api999api.com/google/
+2d31hvypfXUM|https://sv5.api999api.com/google/
+qUgUm35xvqla|https://sv5.api999api.com/google/
+BkW0uXShkPIS|https://sv5.api999api.com/google/
+jwgk4fNEvMLq|https://sv5.api999api.com/google/
+RbdrwiHhVPkZ|https://sv5.api999api.com/google/
+RhDLh9qrv54q|https://sv5.api999api.com/google/
+9NpC9ojTXYFg|https://sv5.api999api.com/google/
+4em9swhCoBbl|https://sv5.api999api.com/google/
+wlelvL2jB3PG|https://sv5.api999api.com/google/
+wTOuoGJxrLCM|https://sv5.api999api.com/google/
+# Old codes
 BCRB9uoI6MYD|https://sv5.api999api.com/google/
 ninNc2aQ1qkq|https://sv5.api999api.com/google/
 zOFmaOzsM84b|https://sv5.api999api.com/google/

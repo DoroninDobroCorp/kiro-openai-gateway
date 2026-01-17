@@ -1,0 +1,13 @@
+2026-01-17 22:39:43.841 | INFO     | kiro_gateway.routes:<module>:69 - Rotation module loaded successfully
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36m__main__[0m:[36m<module>[0m:[36m339[0m - [1mStarting Uvicorn server...[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mStarted server process [15473][0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mWaiting for application startup.[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mmain[0m:[36mlifespan[0m:[36m257[0m - [1mStarting application... Creating state managers.[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mkiro_gateway.auth[0m:[36m_load_credentials_from_sqlite[0m:[36m374[0m - [1mCredentials loaded from SQLite database: ~/Library/Application Support/kiro-cli/data.sqlite3[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mkiro_gateway.auth[0m:[36m_detect_auth_type[0m:[36m173[0m - [1mDetected auth type: AWS SSO OIDC (kiro-cli)[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mmain[0m:[36mcredentials_auto_reload_loop[0m:[36m133[0m - [1mCredential auto-reload enabled (interval=5s)[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mApplication startup complete.[0m
+[32m2026-01-17 22:39:43[0m | [31m[1mERROR   [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [31m[1m[Errno 48] error while attempting to bind on address ('0.0.0.0', 8000): address already in use[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mWaiting for application shutdown.[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mmain[0m:[36mlifespan[0m:[36m285[0m - [1mShutting down application.[0m
+[32m2026-01-17 22:39:43[0m | [1mINFO    [0m | [36mlogging[0m:[36mcallHandlers[0m:[36m1744[0m - [1mApplication shutdown complete.[0m
