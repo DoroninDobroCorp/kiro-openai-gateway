@@ -136,6 +136,8 @@ class KiroAuthManager:
         self._access_token: Optional[str] = None
         self._expires_at: Optional[datetime] = None
         self._lock = asyncio.Lock()
+        self._creds_file_mtime: Optional[int] = None
+        self._sqlite_mtime: Optional[int] = None
         
         # Auth type will be determined after loading credentials
         self._auth_type: AuthType = AuthType.KIRO_DESKTOP
@@ -157,6 +159,7 @@ class KiroAuthManager:
         
         # Determine auth type based on available credentials
         self._detect_auth_type()
+        self._update_credential_mtimes()
     
     def _detect_auth_type(self) -> None:
         """
@@ -171,6 +174,56 @@ class KiroAuthManager:
         else:
             self._auth_type = AuthType.KIRO_DESKTOP
             logger.debug("Using auth type: Kiro Desktop")
+
+    def _get_file_mtime(self, file_path: Optional[str]) -> Optional[int]:
+        if not file_path:
+            return None
+        try:
+            return Path(file_path).expanduser().stat().st_mtime_ns
+        except Exception:
+            return None
+
+    def _update_credential_mtimes(self) -> None:
+        if self._creds_file:
+            self._creds_file_mtime = self._get_file_mtime(self._creds_file)
+        if self._sqlite_db:
+            self._sqlite_mtime = self._get_file_mtime(self._sqlite_db)
+
+    def has_reloadable_credentials(self) -> bool:
+        return bool(self._sqlite_db or self._creds_file)
+
+    def reload_if_changed(self) -> bool:
+        """
+        Reloads credentials only if the underlying storage changed.
+
+        Returns:
+            True if reload happened and succeeded, False otherwise.
+        """
+        if self._sqlite_db:
+            current_mtime = self._get_file_mtime(self._sqlite_db)
+            if current_mtime is None:
+                return False
+            if self._sqlite_mtime is not None and current_mtime <= self._sqlite_mtime:
+                return False
+            reload_ok = self.reload_credentials()
+            if reload_ok:
+                self._sqlite_mtime = current_mtime
+            return reload_ok
+        if self._creds_file:
+            current_mtime = self._get_file_mtime(self._creds_file)
+            if current_mtime is None:
+                return False
+            if self._creds_file_mtime is not None and current_mtime <= self._creds_file_mtime:
+                return False
+            reload_ok = self.reload_credentials()
+            if reload_ok:
+                self._creds_file_mtime = current_mtime
+            return reload_ok
+        return False
+
+    async def reload_if_changed_async(self) -> bool:
+        async with self._lock:
+            return self.reload_if_changed()
     
     def _load_credentials_from_sqlite(self, db_path: str) -> None:
         """
@@ -192,28 +245,38 @@ class KiroAuthManager:
             conn = sqlite3.connect(str(path))
             cursor = conn.cursor()
             
-            # Load token data (try multiple key formats)
-            cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("kirocli:odic:token",))
-            token_row = cursor.fetchone()
-            if not token_row:
-                cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("codewhisperer:odic:token",))
+            token_keys = (
+                "kirocli:odic:token",
+                "kirocli:oidc:token",
+                "codewhisperer:odic:token",
+                "codewhisperer:oidc:token",
+                "kirocli:social:token",
+            )
+            token_row = None
+            for key in token_keys:
+                cursor.execute("SELECT value FROM auth_kv WHERE key = ?", (key,))
                 token_row = cursor.fetchone()
-            if not token_row:
-                cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("kirocli:social:token",))
-                token_row = cursor.fetchone()
+                if token_row:
+                    break
             
             if token_row:
                 token_data = json.loads(token_row[0])
                 if token_data:
                     # Load token fields (using snake_case as in Rust struct)
-                    if 'access_token' in token_data:
-                        self._access_token = token_data['access_token']
-                    if 'refresh_token' in token_data:
-                        self._refresh_token = token_data['refresh_token']
-                    if 'profile_arn' in token_data:
-                        self._profile_arn = token_data['profile_arn']
-                    if 'region' in token_data:
-                        self._region = token_data['region']
+                    access_token = token_data.get('access_token') or token_data.get('accessToken')
+                    refresh_token = token_data.get('refresh_token') or token_data.get('refreshToken')
+                    if access_token:
+                        self._access_token = access_token
+                    if refresh_token:
+                        self._refresh_token = refresh_token
+                    else:
+                        logger.error(f"SQLite token data missing or empty refresh_token! Keys: {list(token_data.keys())}")
+                    profile_arn = token_data.get('profile_arn') or token_data.get('profileArn')
+                    if profile_arn:
+                        self._profile_arn = profile_arn
+                    region = token_data.get('region')
+                    if region:
+                        self._region = region
                         # Update URLs for new region
                         self._refresh_url = get_kiro_refresh_url(self._region)
                         self._api_host = get_kiro_api_host(self._region)
@@ -224,9 +287,9 @@ class KiroAuthManager:
                         self._scopes = token_data['scopes']
                     
                     # Parse expires_at (RFC3339 format)
-                    if 'expires_at' in token_data:
+                    expires_str = token_data.get('expires_at') or token_data.get('expiresAt')
+                    if expires_str:
                         try:
-                            expires_str = token_data['expires_at']
                             # Handle various ISO 8601 formats
                             if expires_str.endswith('Z'):
                                 self._expires_at = datetime.fromisoformat(expires_str.replace('Z', '+00:00'))
@@ -234,21 +297,30 @@ class KiroAuthManager:
                                 self._expires_at = datetime.fromisoformat(expires_str)
                         except Exception as e:
                             logger.warning(f"Failed to parse expires_at from SQLite: {e}")
-            
+
             # Load device registration (client_id, client_secret) - try both key formats
-            cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("kirocli:odic:device-registration",))
-            registration_row = cursor.fetchone()
-            if not registration_row:
-                cursor.execute("SELECT value FROM auth_kv WHERE key = ?", ("codewhisperer:odic:device-registration",))
+            registration_keys = (
+                "kirocli:odic:device-registration",
+                "kirocli:oidc:device-registration",
+                "codewhisperer:odic:device-registration",
+                "codewhisperer:oidc:device-registration",
+            )
+            registration_row = None
+            for key in registration_keys:
+                cursor.execute("SELECT value FROM auth_kv WHERE key = ?", (key,))
                 registration_row = cursor.fetchone()
+                if registration_row:
+                    break
             
             if registration_row:
                 registration_data = json.loads(registration_row[0])
                 if registration_data:
-                    if 'client_id' in registration_data:
-                        self._client_id = registration_data['client_id']
-                    if 'client_secret' in registration_data:
-                        self._client_secret = registration_data['client_secret']
+                    client_id = registration_data.get('client_id') or registration_data.get('clientId')
+                    client_secret = registration_data.get('client_secret') or registration_data.get('clientSecret')
+                    if client_id:
+                        self._client_id = client_id
+                    if client_secret:
+                        self._client_secret = client_secret
                     # Region from registration takes precedence if not set
                     if 'region' in registration_data and not self._region:
                         self._region = registration_data['region']
@@ -381,12 +453,20 @@ class KiroAuthManager:
         
         return self._expires_at.timestamp() <= threshold
 
-    def reload_credentials(self) -> None:
+    def reload_credentials(self) -> bool:
         """
         Reloads credentials from file (useful after kiro-cli login).
         
-        Clears current tokens and reloads from configured source.
+        Returns:
+            True if credentials loaded successfully and appear valid,
+            False if reload failed or token is invalid/missing.
         """
+        # Save old values in case reload fails
+        old_refresh = self._refresh_token
+        old_access = self._access_token
+        old_expires = self._expires_at
+        
+        # Clear for fresh load
         self._access_token = None
         self._expires_at = None
         self._refresh_token = None
@@ -397,7 +477,26 @@ class KiroAuthManager:
             self._load_credentials_from_file(self._creds_file)
         
         self._detect_auth_type()
-        logger.info("Credentials reloaded from file")
+        
+        # Validate loaded credentials
+        if not self._refresh_token:
+            logger.error("reload_credentials: refresh_token is None after reload!")
+            # Restore old values
+            self._refresh_token = old_refresh
+            self._access_token = old_access
+            self._expires_at = old_expires
+            return False
+        
+        # Check if token is way too old (> 7 days expired = definitely invalid)
+        if self._expires_at:
+            from datetime import timedelta
+            now = datetime.now(timezone.utc)
+            if self._expires_at < now - timedelta(days=7):
+                logger.warning(f"Token in storage is too old (expired {self._expires_at}), needs rotation")
+                return False
+        
+        logger.info("Credentials reloaded successfully")
+        return True
     
     async def _refresh_token_request(self) -> None:
         """
@@ -411,6 +510,11 @@ class KiroAuthManager:
             ValueError: If refresh token is not set or response doesn't contain accessToken
             httpx.HTTPError: On HTTP request error
         """
+        if not self._refresh_token:
+            logger.warning("Refresh token missing, attempting reload from storage")
+            self.reload_credentials()
+            if not self._refresh_token:
+                raise ValueError("Refresh token is not set")
         if self._auth_type == AuthType.AWS_SSO_OIDC:
             await self._refresh_token_aws_sso_oidc()
         else:
@@ -517,12 +621,14 @@ class KiroAuthManager:
             response.raise_for_status()
             result = response.json()
         
-        new_access_token = result.get("accessToken")
-        new_refresh_token = result.get("refreshToken")
-        expires_in = result.get("expiresIn", 3600)
+        # AWS SSO OIDC returns snake_case, but some endpoints may return camelCase
+        # Support both formats for compatibility
+        new_access_token = result.get("access_token") or result.get("accessToken")
+        new_refresh_token = result.get("refresh_token") or result.get("refreshToken")
+        expires_in = result.get("expires_in") or result.get("expiresIn") or 3600
         
         if not new_access_token:
-            raise ValueError(f"AWS SSO OIDC response does not contain accessToken: {result}")
+            raise ValueError(f"AWS SSO OIDC response does not contain access_token: {result}")
         
         # Update data
         self._access_token = new_access_token
@@ -543,6 +649,7 @@ class KiroAuthManager:
         
         Thread-safe method using asyncio.Lock.
         Automatically refreshes the token if it has expired or is about to expire.
+        Also checks if credentials file has changed and reloads if needed.
         
         Returns:
             Valid access token
@@ -551,6 +658,9 @@ class KiroAuthManager:
             ValueError: If unable to obtain access token
         """
         async with self._lock:
+            # Check if credentials file has changed and reload if needed
+            self.reload_if_changed()
+            
             if not self._access_token or self.is_token_expiring_soon():
                 await self._refresh_token_request()
             
